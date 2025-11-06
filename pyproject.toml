@@ -1,0 +1,18 @@
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I"]
+
+[tool.black]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-agent-template"
+version = "1.0.0"

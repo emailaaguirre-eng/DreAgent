@@ -1,0 +1,39 @@
+{
+  "name": "ai-agent-extension",
+  "displayName": "AI Agent: Propose Edit",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-agent.proposeEdit",
+        "title": "AI Agent: Propose Edit"
+      }
+    ],
+    "configuration": {
+      "properties": {
+        "aiAgent.serviceUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "AI Agent service URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}
