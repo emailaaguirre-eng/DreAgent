@@ -1,10 +1,38 @@
 """Model client with support for multiple AI providers."""
-import os
-from typing import Optional
 from dotenv import load_dotenv
+import httpx
+from typing import Optional
+from openai import OpenAI
+import anthropic
 
-load_dotenv()
+# Load API keys from the env file in the project root
+load_dotenv("drekeys.env", override=True)
 
+# Create clients (ignore system proxy env for stability)
+openai_client = OpenAI(http_client=httpx.Client(trust_env=False))
+anthropic_client = anthropic.Anthropic(http_client=httpx.Client(trust_env=False))
+
+def ask_llm(prompt: str, provider: str = "openai") -> str:
+    if provider == "openai":
+        r = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=256,
+            temperature=0.2,
+        )
+        return r.choices[0].message.content.strip()
+
+    if provider == "anthropic":
+        r = anthropic_client.messages.create(
+            model="claude-3-5-haiku-latest",
+            max_tokens=256,
+            temperature=0.2,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        # r.content[0] has .text on newer SDKs
+        return getattr(r.content[0], "text", str(r.content[0])).strip()
+
+    raise ValueError("provider must be 'openai' or 'anthropic'")
 
 def call_model(
     instruction: str, 
