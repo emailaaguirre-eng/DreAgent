@@ -1,15 +1,22 @@
+﻿# Python
 __pycache__/
 *.pyc
-.env
-logs/*.jsonl
+*.pyo
+*.pyd
+*.pytest_cache/
+.venv/
 venv/
-.vscode-test/
-extension/out/
-extension/node_modules/
-*.vsix
+
+# Env & secrets
+.env
+.env.*
+*.secret
+*.key
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS
 .DS_Store
-*.bak
-.pytest_cache/
-.ruff_cache/
-dist/
-build/
+Thumbs.db
