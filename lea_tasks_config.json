@@ -1,0 +1,144 @@
+{
+  "tasks": {
+    "file_copy": {
+      "allowed": true
+    },
+    "file_move": {
+      "allowed": true
+    },
+    "file_delete": {
+      "allowed": true
+    },
+    "file_read": {
+      "allowed": true
+    },
+    "file_write": {
+      "allowed": true
+    },
+    "file_view": {
+      "allowed": true
+    },
+    "directory_create": {
+      "allowed": true
+    },
+    "directory_list": {
+      "allowed": true
+    },
+    "text_replace": {
+      "allowed": true
+    },
+    "system_command": {
+      "allowed": true
+    },
+    "word_document_create": {
+      "allowed": true
+    },
+    "pdf_to_word": {
+      "allowed": true
+    },
+    "powerpoint_format_text": {
+      "allowed": true
+    },
+    "screenshot": {
+      "allowed": true
+    },
+    "click": {
+      "allowed": true
+    },
+    "type": {
+      "allowed": true
+    },
+    "key_press": {
+      "allowed": true
+    },
+    "hotkey": {
+      "allowed": true
+    },
+    "find_image": {
+      "allowed": true
+    },
+    "scroll": {
+      "allowed": true
+    },
+    "move_mouse": {
+      "allowed": true
+    },
+    "get_screen_size": {
+      "allowed": true
+    },
+    "workflow_record": {
+      "allowed": true
+    },
+    "workflow_stop": {
+      "allowed": true
+    },
+    "workflow_play": {
+      "allowed": true
+    },
+    "workflow_list": {
+      "allowed": true
+    },
+    "workflow_delete": {
+      "allowed": true
+    },
+    "outlook_email_check": {
+      "allowed": true
+    },
+    "outlook_email_draft": {
+      "allowed": true
+    },
+    "outlook_calendar_check": {
+      "allowed": true
+    },
+    "outlook_inbox_organize": {
+      "allowed": true
+    },
+    "outlook_user_profile": {
+      "allowed": true
+    },
+    "email_check": {
+      "allowed": true
+    },
+    "email_read": {
+      "allowed": true
+    },
+    "email_send": {
+      "allowed": true
+    },
+    "email_mark_read": {
+      "allowed": true
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-26T11:47:48.539494",
+      "task_name": "email_check",
+      "params": {},
+      "result": {
+        "success": false,
+        "message": "Email integration not available. Missing required packages.\n\nInstall with: pip install msal requests python-dotenv\n\nError: No module named 'outlook_email'",
+        "data": null,
+        "error": "Import error"
+      },
+      "confirmed": true
+    },
+    {
+      "timestamp": "2025-11-26T11:48:15.417884",
+      "task_name": "outlook_email_check",
+      "params": {
+        "timeframe_days": 1,
+        "include_folders": false,
+        "generate_analysis": true,
+        "schedule_regular": false,
+        "max_results": 1000
+      },
+      "result": {
+        "success": false,
+        "message": "Authentication failed. Please:\n1. Check OUTLOOK_CLIENT_ID and OUTLOOK_TENANT_ID in .env\n2. Complete the browser login when prompted\n3. Grant the requested permissions (Mail.Read, Calendars.Read, User.Read)",
+        "data": null,
+        "error": "Authentication failed"
+      },
+      "confirmed": true
+    }
+  ]
+}
