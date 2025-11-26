@@ -1,0 +1,29 @@
+### Health Check
+GET http://127.0.0.1:8000/
+
+### Propose Edit
+POST http://127.0.0.1:8000/propose_edit
+Content-Type: application/json
+
+{
+  "path": "example.txt",
+  "instruction": "Replace TODO with DONE",
+  "content": "TODO: implement feature"
+}
+
+### Apply Edit (Dry Run)
+POST http://127.0.0.1:8000/apply_edit
+Content-Type: application/json
+
+{
+  "path": "example.txt",
+  "new_text": "DONE: implement feature",
+  "approved": true,
+  "dry_run": true
+}
+
+### Run Command
+POST http://127.0.0.1:8000/run_command
+Content-Type: application/json
+
+{"cmd": "git status"}

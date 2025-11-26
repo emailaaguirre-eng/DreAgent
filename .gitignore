@@ -2,11 +2,18 @@
 .env
 .env.local
 .env.*.local
+.env.*
+*.secret
+*.key
+drekeys.env
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+*.pyd
 *.so
 .Python
 build/
@@ -24,6 +31,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.pytest_cache/
 
 # Virtual environments
 venv/
@@ -31,13 +39,16 @@ ENV/
 env/
 .venv
 
-# IDE
+# IDE/editor
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+
+# OS files
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
@@ -59,10 +70,6 @@ agent_config.json
 *.backup
 *.temp
 
-# OS files
-Thumbs.db
-.DS_Store
-
 # Executable builds
 *.exe
 *.spec
@@ -72,4 +79,3 @@ Lea_Executable/
 test_*.py
 *_test.py
 test_output/
-
