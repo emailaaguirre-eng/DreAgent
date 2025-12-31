@@ -1,4 +1,5 @@
 """Model client with support for multiple AI providers."""
+import os
 from dotenv import load_dotenv
 import httpx
 from typing import Optional
