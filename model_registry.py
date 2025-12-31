@@ -74,7 +74,7 @@ MODE_TO_CAPABILITY = {
     "General Assistant & Triage": "chat_fast",      # Primary: gpt-5-mini (fast & cheap for everyday triage)
     "IT Support": "chat_deep",                       # Primary: gpt-5.1 (flagship for coding/agentic workflows)
     "Executive Assistant & Operations": "chat_fast", # Primary: gpt-5-mini (speed for summaries, rewriting, scheduling)
-    "Incentives & Client Forms": "chat_deep",       # Primary: gpt-5.1 (reading rules, statutes, multi-doc context)
+    "EIAGUS": "chat_deep",                          # Primary: gpt-5.1 (Grant agent - citation-backed research)
     "Research & Learning": "chat_deep",               # Primary: gpt-5.1 (deep explanations + long-context reasoning)
     "Legal Research & Drafting": "chat_deep",        # Primary: gpt-5.1 (with higher reasoning effort for legal reasoning)
     "Finance & Tax": "chat_deep",                     # Primary: gpt-5.1 (numbers + rules + careful wording for precision)
@@ -86,7 +86,7 @@ MODE_MODEL_DEFAULTS = {
     "general_assistant_triage":     ("gpt-5-mini", "gpt-5.1"),
     "it_support_tech_support":      ("gpt-5.1",    "gpt-5-mini"),
     "executive_assistant_ops":      ("gpt-5-mini", "gpt-5.1"),
-    "incentives":                   ("gpt-5.1",    "gpt-5-mini"),
+    "eiagus":                       ("gpt-5.1",    "gpt-5-mini"),  # Grant agent
     "research_learning":            ("gpt-5.1",    "gpt-5-mini"),
     "legal_research_assistant":     ("gpt-5.1",    "gpt-5"),
     "accounting_finance_taxes":     ("gpt-5.1",    "gpt-5-mini"),
@@ -97,7 +97,7 @@ MODE_NAME_TO_KEY = {
     "General Assistant & Triage": "general_assistant_triage",
     "IT Support": "it_support_tech_support",
     "Executive Assistant & Operations": "executive_assistant_ops",
-    "Incentives & Client Forms": "incentives",
+    "EIAGUS": "eiagus",
     "Research & Learning": "research_learning",
     "Legal Research & Drafting": "legal_research_assistant",
     "Finance & Tax": "accounting_finance_taxes",

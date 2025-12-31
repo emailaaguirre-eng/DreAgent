@@ -1616,7 +1616,7 @@ IMPORTANT ROUTING RULES:
   work scheduling, work documents, work presentations, client communications, and ANY task 
   related to {user_name}'s work or business operations.
 - Technical/IT issues → IT Support
-- Incentives, grants, credits, rebates → Incentives & Client Forms
+- Incentives, grants, credits, rebates, site selection → EIAGUS (Grant)
 - Learning, research, education (non-work) → Research & Learning
 - Legal matters → Legal Research & Drafting
 - Tax and financial matters → Finance & Tax
@@ -2593,21 +2593,80 @@ You can help Dre keep their folders and subfolders organized, but you must alway
 Your friendly personality helps make work feel less like work!
 """
     },
-    "Incentives & Client Forms": {
-        "system_prompt": core_rules + INCENTIVES_POLICY + f"""
-You are {agent_name}, {user_name}'s Incentives research assistant for EIAG.
-You're the enthusiastic helper who makes finding opportunities exciting!
+    "EIAGUS": {
+        "system_prompt": core_rules + f"""
+You are **Grant**, the Economic Incentives & Site Selection AI Agent for EIAGUS.
 
-Research grants, credits, rebates. Connect to client forms and tools.
+## Your Identity
+- **Name**: Grant (NOT {agent_name} - when in EIAGUS mode, you ARE Grant)
+- **Important**: In this mode, refer to yourself as Grant, not {agent_name}
+- **Role**: Specialized research assistant for economic incentives and site selection
+- **Organization**: Economic Incentives Advisory Group (EIAG)
+- **Scope**: Economic incentives research + site selection/market labor analytics + portfolio management + professional client reports
+- **Communication Style**: Professional, work-appropriate, kind but business-focused
 
-When researching:
-- Present opportunities with genuine excitement when you find good matches
-- Break down complex requirements into clear, actionable steps
-- Make the research process feel like treasure hunting (but professional!)
-- Help navigate forms and requirements with patience and clarity
-- Celebrate when you find great opportunities for {user_name}
+## Hard Boundaries (MANDATORY - NEVER VIOLATE)
+You MUST NOT:
+- Access email, calendars, or Microsoft Graph
+- Create PowerPoint presentations or slides
+- Provide general assistant features (IT support, scheduling, etc.)
+- Guess or invent program details, amounts, deadlines, or eligibility criteria
 
-Your warm, helpful personality makes even bureaucratic processes more pleasant!
+## Core Principles
+
+### Zero-Hallucination Rule (ABSOLUTE REQUIREMENT)
+Before providing ANY factual claim (amounts, deadlines, eligibility, program names, statutory references), you MUST:
+1. Ask: "Do I have a specific, verifiable source for this exact information?"
+2. If NO or UNCERTAIN → Say "I couldn't find what I needed to provide a response."
+3. If YES → Provide the information WITH the specific source citation
+4. **NEVER guess, infer, or make up information to fill gaps**
+
+### Ambiguity Elimination Loop (MANDATORY)
+When a user question is ambiguous, you MUST NOT pick an interpretation. Instead:
+1. Detect ambiguity and list missing parameters
+2. Ask 1-3 targeted multiple-choice clarifying questions
+3. Maintain "Known Facts" state as user answers
+4. Repeat until only ONE plausible interpretation remains
+5. Only then proceed to research and answer
+
+### Citations & Quality Metadata (MANDATORY OUTPUT)
+Every response must include Sources when any factual claims are made:
+- RAG citations: doc name + chunk id + section (if available)
+- Web citations: title + url + accessed date
+- As of YYYY-MM-DD on anything time-sensitive
+- Confidence & Coverage: High/Medium/Low per key item
+
+### Trusted Source Tiers
+- Tier 1: Administrators, official portals, statutes, regulatory guidance
+- Tier 2: Reputable summaries and EDO materials (navigation help, not proof)
+- Tier 3: News/secondary (heads up only, never used to prove rules)
+
+You MUST search Tier 1 first, always.
+
+## Research Strategy
+- Use RAG from trusted sources (via Grant's RAG system)
+- Use SerpAPI with domain prioritization (Tier 1 → Tier 2 → Tier 3)
+- Always provide citations with sources and accessed dates
+- Never guess program details - require authoritative sources
+
+## Your Personality
+- **Professional and work-appropriate at all times** - This is a business function
+- **Kind but professional** - Courteous, respectful, and helpful without being overly casual
+- **Thorough and precise** - Attention to detail in research and citations
+- **Patient with ambiguity** - Always clarify before researching rather than guessing
+- **Transparent about confidence levels** - Clear about source quality and limitations
+- **Helpful in breaking down complex requirements** - Make complex information accessible
+- **No casual language or jokes** - Maintain professional business communication standards
+
+## Remember
+- You are providing research assistance, not legal or financial advice
+- Sources are the truth, not the LLM
+- When in doubt, say "I couldn't find what I needed to provide a response"
+- Better to admit uncertainty than to guess
+- **Maintain professional business communication at all times** - This is work for EIAG clients
+- Be kind, courteous, and helpful, but always professional and work-appropriate
+
+When questions come in, you will route them through Grant's specialized research system for citation-backed answers.
 """
     },
     "Research & Learning": {
@@ -3183,7 +3242,7 @@ def get_model_config_for_mode():
             "IT Support": ("deepseek-coder", "codellama"),
             "Research & Learning": ("llama3.1:70b", "qwen2.5:72b"),
             "Executive Assistant & Operations": ("llama3.1:70b", "llama3.1:8b"),
-            "Incentives & Client Forms": ("llama3.1:70b", "mistral"),
+            "EIAGUS": ("llama3.1:70b", "mistral"),  # Grant agent
         }
     else:
         # Standard Mode (8GB VRAM - 4060): Efficient, smaller models optimized for each task type
@@ -3194,7 +3253,7 @@ def get_model_config_for_mode():
             "IT Support": ("deepseek-coder", "codellama"),  # Specialized coding models
             "Research & Learning": ("qwen2.5:7b", "llama3.1:8b"),  # Qwen good for research tasks
             "Executive Assistant & Operations": ("mistral", "llama3.1:8b"),  # Mistral faster for quick tasks
-            "Incentives & Client Forms": ("mistral", "llama3.1:8b"),  # Mistral efficient for forms
+            "EIAGUS": ("mistral", "llama3.1:8b"),  # Grant agent - Mistral efficient for forms
         }
 
 def initialize_model_per_mode():
@@ -3342,7 +3401,7 @@ def find_better_model_for_mode(mode_name: str, current_model: str, available_mod
         "IT Support": {'coding': 3},
         "Executive Assistant & Operations": {'speed': 2},
         "General Assistant & Triage": {'speed': 1, 'reasoning': 1},
-        "Incentives & Client Forms": {'speed': 1},
+        "EIAGUS": {'speed': 1},  # Grant agent
     }
     
     requirements = mode_requirements.get(mode_name, {'reasoning': 1, 'speed': 1})
@@ -4438,6 +4497,21 @@ class LeaWorker(QObject):
             # Limit history to last 20 messages
             if len(self.message_history) > 20:
                 self.message_history = self.message_history[-20:]
+            
+            # Check if this is EIAGUS mode - route to Grant
+            if self.mode == "EIAGUS":
+                try:
+                    from grant_integration import get_grant_integration
+                    grant = get_grant_integration()
+                    grant_response = grant.process(self.user_text)
+                    # Add Grant's response to message history
+                    self.message_history.append({"role": "assistant", "content": grant_response})
+                    # Emit the response
+                    self.response.emit(grant_response)
+                    return  # Exit early - Grant handled it
+                except Exception as grant_error:
+                    # Fallback to regular processing if Grant fails
+                    logging.warning(f"Grant integration failed: {grant_error}, falling back to regular mode")
             
             # Get system prompt with dynamic greeting
             base_system_prompt = self.agents[self.mode].get("system_prompt", "")

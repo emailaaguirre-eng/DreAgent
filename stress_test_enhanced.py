@@ -50,7 +50,7 @@ def test_rapid_mode_switches():
         "General Assistant & Triage",
         "IT Support",
         "Executive Assistant & Operations",
-        "Incentives & Client Forms",
+        "EIAGUS",
         "Research & Learning",
         "Legal Research & Drafting",
         "Finance & Tax"
@@ -60,7 +60,7 @@ def test_rapid_mode_switches():
         "General Assistant & Triage": ("gpt-5-mini", "gpt-5.1"),
         "IT Support": ("gpt-5.1", "gpt-5-mini"),
         "Executive Assistant & Operations": ("gpt-5-mini", "gpt-5.1"),
-        "Incentives & Client Forms": ("gpt-5.1", "gpt-5-mini"),
+        "EIAGUS": ("gpt-5.1", "gpt-5-mini"),  # Grant agent
         "Research & Learning": ("gpt-5.1", "gpt-5-mini"),
         "Legal Research & Drafting": ("gpt-5.1", "gpt-5"),
         "Finance & Tax": ("gpt-5.1", "gpt-5-mini"),
