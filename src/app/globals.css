@@ -1,0 +1,213 @@
+/* DreAgent Cloud - Global Styles
+   Copyright (c) 2026 B&D Servicing LLC - All Rights Reserved
+   Powered by CoDre-X™ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-outfit: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* Warm copper/bronze palette */
+  --brand-primary: #cd6f4d;
+  --brand-secondary: #994830;
+  --brand-accent: #e9b8a3;
+  
+  /* Dark surfaces */
+  --surface-base: #0a0f1a;
+  --surface-elevated: #111827;
+  --surface-card: #1a2332;
+  
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-outfit);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Animated gradient background */
+.gradient-bg {
+  background: linear-gradient(
+    135deg,
+    var(--surface-base) 0%,
+    #0f1729 25%,
+    #141e30 50%,
+    #0f1729 75%,
+    var(--surface-base) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Subtle grid pattern overlay */
+.grid-overlay {
+  background-image: 
+    linear-gradient(to right, rgba(205, 111, 77, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(205, 111, 77, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Glow effects */
+.glow-brand {
+  box-shadow: 0 0 20px rgba(205, 111, 77, 0.3);
+}
+
+.glow-brand-soft {
+  box-shadow: 0 0 40px rgba(205, 111, 77, 0.15);
+}
+
+/* Message bubbles */
+.message-user {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  border-radius: 20px 20px 4px 20px;
+}
+
+.message-assistant {
+  background: var(--surface-card);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 20px 20px 20px 4px;
+}
+
+/* Input focus ring */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500;
+}
+
+/* Typing indicator */
+.typing-dot {
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+/* Voice recording pulse */
+.voice-pulse {
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(205, 111, 77, 0.4);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 0 15px rgba(205, 111, 77, 0);
+  }
+}
+
+/* Code blocks in markdown */
+.prose pre {
+  background: #0d1117 !important;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  background: rgba(148, 163, 184, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Mode selector pills */
+.mode-pill {
+  @apply px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200;
+  @apply bg-surface-700/50 text-text-secondary hover:bg-surface-700 hover:text-text-primary;
+}
+
+.mode-pill.active {
+  @apply bg-brand-500 text-white shadow-lg;
+  box-shadow: 0 4px 15px rgba(205, 111, 77, 0.3);
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  @apply bg-brand-500 text-white hover:bg-brand-600;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  @apply bg-surface-700 text-text-primary hover:bg-surface-700/80;
+  @apply border border-white/10;
+}
+
+/* Stagger animation for message entry */
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-enter {
+  animation: message-enter 0.3s ease-out forwards;
+}
