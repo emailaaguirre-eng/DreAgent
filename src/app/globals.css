@@ -113,8 +113,10 @@ body {
 }
 
 /* Input focus ring */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500;
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(205, 111, 77, 0.5);
+  border-color: var(--brand-primary);
 }
 
 /* Typing indicator */
@@ -174,26 +176,57 @@ body {
 
 /* Mode selector pills */
 .mode-pill {
-  @apply px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200;
-  @apply bg-surface-700/50 text-text-secondary hover:bg-surface-700 hover:text-text-primary;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: rgba(30, 41, 59, 0.5);
+  color: var(--text-secondary);
+}
+
+.mode-pill:hover {
+  background: #1e293b;
+  color: var(--text-primary);
 }
 
 .mode-pill.active {
-  @apply bg-brand-500 text-white shadow-lg;
+  background: var(--brand-primary);
+  color: white;
   box-shadow: 0 4px 15px rgba(205, 111, 77, 0.3);
 }
 
 /* Button styles */
 .btn-primary {
-  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-  @apply bg-brand-500 text-white hover:bg-brand-600;
-  @apply focus:outline-none focus:ring-2 focus:ring-brand-500/50;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: var(--brand-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--brand-secondary);
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(205, 111, 77, 0.5);
 }
 
 .btn-secondary {
-  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-  @apply bg-surface-700 text-text-primary hover:bg-surface-700/80;
-  @apply border border-white/10;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: #1e293b;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover {
+  background: rgba(30, 41, 59, 0.8);
 }
 
 /* Stagger animation for message entry */
