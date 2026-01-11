@@ -33,6 +33,12 @@ const config: Config = {
           900: '#0a0f1a',
           950: '#050709',
         },
+        // Text colors
+        text: {
+          primary: '#f8fafc',
+          secondary: '#94a3b8',
+          muted: '#64748b',
+        },
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
