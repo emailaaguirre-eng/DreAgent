@@ -211,7 +211,7 @@ function EmptyState({ mode }: { mode: AgentMode }) {
     ],
     executive: [
       'Draft a follow-up email for the client meeting',
-      'Prepare talking points for tomorrow's presentation',
+      'Prepare talking points for tomorrow\'s presentation',
       'Organize my calendar for next week',
     ],
     legal: [
