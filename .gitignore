@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!config/.env.example
+!config/.env.production
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtualenv
+venv/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Local databases / data (keep schema, not runtime files)
+data/*.db
+data/*.sqlite*
+data/*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker
+*.pid
+
+# Backups / scratch
+*.bak
+*.bak.*
+*~ 
+.claude/settings.local.json

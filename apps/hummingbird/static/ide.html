@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>Chiquis IDE - Hummingbird-LEA</title>
+    <link rel="stylesheet" href="/static/ide.css">
+    <!-- Monaco Editor from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+</head>
+<body>
+    <div class="ide-container">
+        <!-- Header -->
+        <header class="ide-header">
+            <div class="ide-logo">
+                <span class="logo-icon">💻</span>
+                <h1>Chiquis IDE</h1>
+                <span class="subtitle">Your AI Coding Partner</span>
+            </div>
+            <div class="ide-header-center">
+                <div class="project-selector">
+                    <select id="project-select">
+                        <option value="default">default</option>
+                    </select>
+                    <button id="new-project-btn" class="icon-btn" title="New Project">+</button>
+                </div>
+            </div>
+            <div class="ide-header-right">
+                <span id="file-status" class="file-status">Ready</span>
+                <span id="connection-status" class="status-indicator connected" title="Connected">●</span>
+                <a href="/" class="back-link">Back to Chat</a>
+            </div>
+        </header>
+
+        <!-- Main IDE Area -->
+        <div class="ide-main">
+            <!-- Sidebar: File Explorer -->
+            <aside class="ide-sidebar" id="file-sidebar">
+                <div class="sidebar-header">
+                    <span>Explorer</span>
+                    <div class="sidebar-actions">
+                        <button id="new-file-btn" class="icon-btn" title="New File">📄</button>
+                        <button id="new-folder-btn" class="icon-btn" title="New Folder">📁</button>
+                        <button id="refresh-btn" class="icon-btn" title="Refresh">🔄</button>
+                    </div>
+                </div>
+                <div class="file-tree" id="file-tree">
+                    <!-- File tree will be populated here -->
+                </div>
+            </aside>
+
+            <!-- Editor Area -->
+            <div class="ide-editor-area">
+                <!-- Tabs -->
+                <div class="editor-tabs" id="editor-tabs">
+                    <!-- Tabs will be added here -->
+                </div>
+
+                <!-- Monaco Editor Container -->
+                <div class="editor-container" id="editor-container">
+                    <div id="monaco-editor"></div>
+                </div>
+
+                <!-- Inline Edit Dialog (Cmd+K) -->
+                <div class="inline-edit-dialog" id="inline-edit-dialog" style="display: none;">
+                    <div class="inline-edit-input-wrapper">
+                        <input type="text" id="inline-edit-input" placeholder="Describe the change... (Enter to apply, Esc to cancel)">
+                        <div class="inline-edit-hint">Ctrl+K / Cmd+K</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Sidebar -->
+            <aside class="ide-chat-sidebar" id="chat-sidebar">
+                <div class="chat-sidebar-header">
+                    <span>💻 Chat with Chiquis</span>
+                    <button id="toggle-chat-btn" class="icon-btn" title="Toggle Chat">◀</button>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <strong>Chiquis:</strong> Hey! I'm here to help you code. Ask me anything or select some code and ask about it!
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="chat-context-indicator" id="chat-context-indicator" style="display: none;">
+                        <span>📎 Code selected</span>
+                        <button id="clear-context-btn" class="icon-btn">×</button>
+                    </div>
+                    <textarea id="chat-input" placeholder="Ask Chiquis... (Ctrl+Enter to send)" rows="2"></textarea>
+                    <button id="chat-send-btn" class="btn-send" title="Send">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="ide-statusbar">
+            <div class="statusbar-left">
+                <span id="cursor-position">Ln 1, Col 1</span>
+                <span id="language-indicator">Python</span>
+            </div>
+            <div class="statusbar-center">
+                <span id="ai-status">AI: Ready</span>
+            </div>
+            <div class="statusbar-right">
+                <span>Chiquis IDE</span>
+                <span class="separator">|</span>
+                <span>Powered by CoDre-X</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- New File/Folder Modal -->
+    <div class="modal" id="new-item-modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="new-item-title">New File</h3>
+            <input type="text" id="new-item-name" placeholder="filename.py">
+            <div class="modal-actions">
+                <button id="new-item-cancel" class="btn-secondary">Cancel</button>
+                <button id="new-item-create" class="btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div class="modal" id="new-project-modal" style="display: none;">
+        <div class="modal-content">
+            <h3>New Project</h3>
+            <input type="text" id="new-project-name" placeholder="project-name">
+            <div class="modal-actions">
+                <button id="new-project-cancel" class="btn-secondary">Cancel</button>
+                <button id="new-project-create" class="btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/ide.js"></script>
+</body>
+</html>

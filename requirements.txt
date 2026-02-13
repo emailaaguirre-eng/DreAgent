@@ -1,0 +1,48 @@
+# =============================================================================
+# HUMMINGBIRD-LEA - Requirements
+# Powered by CoDre-X | B & D Servicing LLC
+# =============================================================================
+
+# Core Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# AI & LLM
+httpx>=0.26.0
+aiohttp>=3.9.0
+
+# Database & Storage
+sqlalchemy>=2.0.0
+aiosqlite>=0.19.0
+
+# RAG System
+chromadb>=0.4.22
+
+# Document Processing
+python-pptx>=0.6.23
+python-docx>=1.1.0
+reportlab>=4.0.0
+PyPDF2>=3.0.0
+openpyxl>=3.1.0
+pandas>=2.0.0
+
+# OCR & Vision
+Pillow>=10.0.0
+pytesseract>=0.3.10
+
+# Web Search
+duckduckgo-search>=4.1.0
+
+# Security
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+
+# Utilities
+aiofiles>=23.2.0
+jinja2>=3.1.0
+python-dateutil>=2.8.0
+typing-extensions>=4.9.0

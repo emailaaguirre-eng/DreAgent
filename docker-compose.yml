@@ -1,0 +1,129 @@
+# =============================================================================
+# HUMMINGBIRD-LEA - Docker Compose
+# Powered by CoDre-X | B & D Servicing LLC
+# =============================================================================
+# Docker Compose configuration for local development and production deployment
+#
+# Usage:
+#   Development:  docker-compose up
+#   Production:   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Hummingbird Application
+  # ---------------------------------------------------------------------------
+  hummingbird:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hummingbird-lea
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - DEBUG=${DEBUG:-true}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL_CHAT=${OLLAMA_MODEL_CHAT:-llama3.1:8b}
+      - OLLAMA_MODEL_CODE=${OLLAMA_MODEL_CODE:-deepseek-coder:6.7b}
+      - OLLAMA_MODEL_VISION=${OLLAMA_MODEL_VISION:-llava-llama3:8b}
+      - OLLAMA_MODEL_EMBED=${OLLAMA_MODEL_EMBED:-nomic-embed-text}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-dre}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme123}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key}
+      - DATABASE_URL=sqlite+aiosqlite:///./data/hummingbird.db
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # Persistent data
+      - hummingbird_data:/app/data
+      # Development: mount source for hot reload
+      - ./apps:/app/apps:ro
+      - ./core:/app/core:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - hummingbird-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Ollama AI Service
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hummingbird-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - hummingbird-network
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    # GPU support (uncomment for NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ---------------------------------------------------------------------------
+  # Model Initializer (runs once to pull models)
+  # ---------------------------------------------------------------------------
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: hummingbird-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Pulling required models..."
+        ollama pull llama3.1:8b
+        ollama pull deepseek-coder:6.7b
+        ollama pull llava-llama3:8b
+        ollama pull nomic-embed-text
+        echo "All models pulled successfully!"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    networks:
+      - hummingbird-network
+    profiles:
+      - init
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  hummingbird-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  hummingbird_data:
+    driver: local
+  ollama_data:
+    driver: local

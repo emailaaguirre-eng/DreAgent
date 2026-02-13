@@ -1,0 +1,64 @@
+# =============================================================================
+# HUMMINGBIRD-LEA - Systemd Service
+# Powered by CoDre-X | B & D Servicing LLC
+# =============================================================================
+# Install: sudo cp hummingbird.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable hummingbird
+#          sudo systemctl start hummingbird
+# =============================================================================
+
+[Unit]
+Description=Hummingbird-LEA AI Assistant Platform
+Documentation=https://github.com/bdservicing/hummingbird-lea
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=notify
+User=hummingbird
+Group=hummingbird
+WorkingDirectory=/opt/hummingbird-lea
+Environment="PATH=/opt/hummingbird-lea/venv/bin:/usr/local/bin:/usr/bin"
+Environment="PYTHONPATH=/opt/hummingbird-lea"
+EnvironmentFile=/opt/hummingbird-lea/.env
+
+# Start command with Gunicorn
+ExecStart=/opt/hummingbird-lea/venv/bin/gunicorn \
+    apps.hummingbird.main:app \
+    --workers 4 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile /var/log/hummingbird/access.log \
+    --error-logfile /var/log/hummingbird/error.log \
+    --capture-output
+
+# Graceful restart
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/hummingbird /var/log/hummingbird
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hummingbird
+
+[Install]
+WantedBy=multi-user.target

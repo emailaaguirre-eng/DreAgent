@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <meta name="googlebot" content="noindex, nofollow">
+    <title>🐦 Hummingbird-LEA</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">🐦</span>
+                <h1>Hummingbird-LEA</h1>
+            </div>
+            <div class="header-right">
+                <span id="connection-status" class="status-indicator">●</span>
+                <span id="user-name">Guest</span>
+                <button id="logout-btn" class="btn-small" style="display: none;">Logout</button>
+            </div>
+        </header>
+
+        <!-- Login Modal -->
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <h2>🔐 Login to Hummingbird-LEA</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                    <p id="login-error" class="error-text"></p>
+                </form>
+                <p class="powered-by">Powered by CoDre-X | B & D Servicing LLC</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" style="display: none;">
+            <!-- Agent Selector -->
+            <div class="agent-selector">
+                <button class="agent-btn active" data-agent="lea">
+                    <span class="agent-icon">🐦</span>
+                    <span class="agent-name">Lea</span>
+                    <span class="agent-role">Executive Assistant</span>
+                </button>
+                <button class="agent-btn" data-agent="chiquis">
+                    <span class="agent-icon">💻</span>
+                    <span class="agent-name">Chiquis</span>
+                    <span class="agent-role">Coding Partner</span>
+                </button>
+                <a href="/ide" class="agent-btn ide-link" title="Open Chiquis IDE">
+                    <span class="agent-icon">🖥️</span>
+                    <span class="agent-name">IDE</span>
+                    <span class="agent-role">Code Editor</span>
+                </a>
+                <button class="agent-btn" data-agent="grant">
+                    <span class="agent-icon">🏛️</span>
+                    <span class="agent-name">Grant</span>
+                    <span class="agent-role">Incentives Expert</span>
+                </button>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be added here -->
+                </div>
+                
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typing-indicator" style="display: none;">
+                    <span class="agent-typing"></span> is thinking...
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <textarea 
+                    id="message-input" 
+                    placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
+                    rows="1"
+                ></textarea>
+                <button id="send-btn" class="btn-send" title="Send message">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Powered by <strong>CoDre-X</strong> | B & D Servicing LLC</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

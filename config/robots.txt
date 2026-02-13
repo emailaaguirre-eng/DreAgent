@@ -1,0 +1,32 @@
+# =============================================================================
+# HUMMINGBIRD-LEA - Robots.txt
+# Block ALL search engine crawling - this is a private application
+# =============================================================================
+
+User-agent: *
+Disallow: /
+
+# Block specific bots explicitly
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: facebot
+Disallow: /
+
+User-agent: ia_archiver
+Disallow: /
