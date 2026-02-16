@@ -233,8 +233,21 @@ async function streamChat(agentKey, message) {
                     return;
                 }
 
-                // Your backend is emitting JSON-quoted tokens sometimes: data: "Hello"
-                // Normalize safely:
+                // Parse backend JSON format: {"t": "chunk"} or {"done": true}
+                if (data.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.done) {
+                            _finalizeLastAssistant(agentKey, full);
+                            return;
+                        }
+                        if (parsed.t !== undefined) {
+                            data = parsed.t;
+                        }
+                    } catch (_) {}
+                }
+
+                // Also handle JSON-quoted strings: data: "Hello"
                 if (data.startsWith('"')) {
                     try { data = JSON.parse(data); } catch (_) {}
                 }

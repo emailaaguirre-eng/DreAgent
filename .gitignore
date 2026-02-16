@@ -46,3 +46,6 @@ Thumbs.db
 *.bak.*
 *~ 
 .claude/settings.local.json
+
+# Local runtime logs
+/data/*.log*

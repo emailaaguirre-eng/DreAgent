@@ -31,6 +31,7 @@ from core.utils.security import (
     RateLimitConfig,
     SecurityHeadersMiddleware,
     RequestIDMiddleware,
+    AuthRequiredMiddleware,
 )
 
 # Import API routers
@@ -124,6 +125,9 @@ app.add_middleware(
 
 # Security headers (Phase 6)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Require authentication for all /api/* routes except allowlisted ones
+app.add_middleware(AuthRequiredMiddleware)
 
 # Rate limiting (Phase 6) - only in production
 if settings.is_production:

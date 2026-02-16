@@ -25,6 +25,8 @@ from enum import Enum
 from core.providers.ollama import Message, OllamaResponse, get_ollama_client, ModelType
 from core.providers.router import get_router, RoutingDecision
 from core.utils.config import get_settings
+from core.providers import get_chat_provider
+
 
 # Phase 2: Import reasoning components
 from core.reasoning import (
@@ -216,8 +218,13 @@ User: "Send that email"
 You: "Done! I've sent the email." (This is hallucination - you don't know which email!)
 """
 
-        # Phase 2: Add ReAct reasoning instructions
-        react_instructions = ReActPromptBuilder.REACT_INSTRUCTION
+        # Phase 2: Add ReAct reasoning instructions (skip for OpenAI - not needed)
+        from core.providers import get_chat_provider
+        chat_provider = get_chat_provider()
+        if chat_provider.__class__.__name__ == "OpenAIProvider":
+            react_instructions = ""
+        else:
+            react_instructions = ReActPromptBuilder.REACT_INSTRUCTION
 
         # Build the full prompt
         full_prompt = f"""{self.system_prompt}
@@ -350,11 +357,18 @@ You: "Done! I've sent the email." (This is hallucination - you don't know which 
             )
 
         # Non-streaming response
-        response = await self.ollama.chat(
-            messages=messages,
-            model=routing.model,
-            model_type=routing.model_type,
-        )
+        chat_provider = get_chat_provider()
+
+        if chat_provider.__class__.__name__ == "OpenAIProvider":
+            openai_messages = [{"role": m.role, "content": m.content} for m in messages]
+            openai_model = getattr(self.settings, "openai_model_chat", None) or "gpt-4o-mini"
+            response = await chat_provider.chat(openai_messages, model=openai_model)
+        else:
+            response = await self.ollama.chat(
+                messages=messages,
+                model=routing.model,
+                model_type=routing.model_type,
+            )
 
         # Phase 2: Parse reasoning from response (if model included it)
         reasoning_steps, clean_response = ReActPromptBuilder.parse_reasoning(response.content)
@@ -411,7 +425,7 @@ You: "Done! I've sent the email." (This is hallucination - you don't know which 
             ] if show_reasoning else None,
             sources=self._extract_sources(clean_response),
             metadata={
-                "model": routing.model,
+                "model": (getattr(self.settings, "openai_model_chat", None) or routing.model),
                 "complexity": routing.complexity.name,
                 "eval_count": response.eval_count,
                 "confidence_factors": [
@@ -465,13 +479,23 @@ You: "Done! I've sent the email." (This is hallucination - you don't know which 
 
         messages.append(Message(role="user", content=user_message))
 
+     # Stream the response
         # Stream the response
-        async for chunk in self.ollama.chat_stream(
-            messages=messages,
-            model=routing.model,
-            model_type=routing.model_type,
-        ):
-            yield chunk
+        # Check provider - use OpenAI if configured
+        chat_provider = get_chat_provider()
+
+        if chat_provider.__class__.__name__ == "OpenAIProvider":
+            openai_messages = [{"role": m.role, "content": m.content} for m in messages]
+            openai_model = getattr(self.settings, "openai_model_chat", None) or "gpt-4o-mini"
+            response = await chat_provider.chat(openai_messages, model=openai_model)
+            yield response.content
+        else:
+            async for chunk in self.ollama.chat_stream(
+                messages=messages,
+                model=routing.model,
+                model_type=routing.model_type,
+            ):
+                yield chunk
 
     def _extract_sources(self, response: str) -> Optional[List[str]]:
         """Extract sources/citations from a response"""

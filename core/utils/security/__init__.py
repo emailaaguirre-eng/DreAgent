@@ -86,6 +86,7 @@ __all__ = [
     "create_input_validator",
     "SecurityHeadersMiddleware",
     "RequestIDMiddleware",
+    "AuthRequiredMiddleware",
     # Errors
     "ErrorCategory",
     "ErrorSeverity",
@@ -117,3 +118,6 @@ __all__ = [
     "get_cache_stats",
     "clear_all_caches",
 ]
+
+# Auth required middleware
+from .auth_required import AuthRequiredMiddleware
