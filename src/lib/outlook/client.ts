@@ -242,6 +242,8 @@ export function getAuthUrl(redirectUri: string): string {
   const clientId = process.env.OUTLOOK_CLIENT_ID;
   const tenantId = process.env.OUTLOOK_TENANT_ID || 'common';
 
+  if (!clientId) throw new Error('OUTLOOK_CLIENT_ID is not configured');
+
   const scopes = [
     'https://graph.microsoft.com/Mail.Read',
     'https://graph.microsoft.com/Mail.Send',
@@ -251,7 +253,7 @@ export function getAuthUrl(redirectUri: string): string {
   ].join(' ');
 
   const params = new URLSearchParams({
-    client_id: clientId!,
+    client_id: clientId,
     response_type: 'code',
     redirect_uri: redirectUri,
     scope: scopes,
@@ -273,25 +275,38 @@ export async function exchangeCodeForTokens(
   const clientSecret = process.env.OUTLOOK_CLIENT_SECRET;
   const tenantId = process.env.OUTLOOK_TENANT_ID || 'common';
 
+  if (!clientId) throw new Error('OUTLOOK_CLIENT_ID is not configured');
+  if (!clientSecret) throw new Error('OUTLOOK_CLIENT_SECRET is not configured');
+
+  const scopes = [
+    'https://graph.microsoft.com/Mail.Read',
+    'https://graph.microsoft.com/Mail.Send',
+    'https://graph.microsoft.com/Calendars.ReadWrite',
+    'https://graph.microsoft.com/User.Read',
+    'offline_access',
+  ].join(' ');
+
   const response = await fetch(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: clientId!,
-        client_secret: clientSecret!,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'authorization_code',
         code,
         redirect_uri: redirectUri,
-        scope: 'https://graph.microsoft.com/.default offline_access',
+        scope: scopes,
       }).toString(),
     }
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error_description || 'Token exchange failed');
+    const error = await response.json().catch(() => ({}));
+    const desc = error.error_description || error.error || 'Token exchange failed';
+    console.error('Token exchange failed:', JSON.stringify(error));
+    throw new Error(desc);
   }
 
   return response.json();
@@ -308,24 +323,37 @@ export async function refreshAccessToken(
   const clientSecret = process.env.OUTLOOK_CLIENT_SECRET;
   const tenantId = process.env.OUTLOOK_TENANT_ID || 'common';
 
+  if (!clientId) throw new Error('OUTLOOK_CLIENT_ID is not configured');
+  if (!clientSecret) throw new Error('OUTLOOK_CLIENT_SECRET is not configured');
+
+  const scopes = [
+    'https://graph.microsoft.com/Mail.Read',
+    'https://graph.microsoft.com/Mail.Send',
+    'https://graph.microsoft.com/Calendars.ReadWrite',
+    'https://graph.microsoft.com/User.Read',
+    'offline_access',
+  ].join(' ');
+
   const response = await fetch(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: clientId!,
-        client_secret: clientSecret!,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
-        scope: 'https://graph.microsoft.com/.default offline_access',
+        scope: scopes,
       }).toString(),
     }
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error_description || 'Token refresh failed');
+    const error = await response.json().catch(() => ({}));
+    const desc = error.error_description || error.error || 'Token refresh failed';
+    console.error('Token refresh failed:', JSON.stringify(error));
+    throw new Error(desc);
   }
 
   return response.json();

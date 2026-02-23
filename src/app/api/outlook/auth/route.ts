@@ -7,30 +7,49 @@ import { getAuthUrl, exchangeCodeForTokens, refreshAccessToken } from '@/lib/out
 
 export const runtime = 'nodejs';
 
-// GET - Get auth URL or handle callback
+function getRedirectUri(): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lea.codrex.com';
+  return `${appUrl.replace(/\/$/, '')}/api/outlook/auth`;
+}
+
+// GET - Get auth URL or handle OAuth callback from Microsoft
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
-    const redirectUri = searchParams.get('redirect_uri') || 
-      process.env.NEXT_PUBLIC_OUTLOOK_REDIRECT_URI ||
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/outlook/auth`;
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    const redirectUri = getRedirectUri();
 
-    // If code present, exchange for tokens
-    if (code) {
-      const tokens = await exchangeCodeForTokens(code, redirectUri);
-      
-      return NextResponse.json({
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_in: tokens.expires_in,
+    // Microsoft returned an error (user denied consent, etc.)
+    if (error) {
+      console.error(`OAuth error: ${error} - ${errorDescription}`);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lea.codrex.com';
+      const params = new URLSearchParams({
+        outlook_error: error,
+        outlook_error_description: errorDescription || 'Authentication failed',
       });
+      return NextResponse.redirect(`${appUrl}?${params.toString()}`);
     }
 
-    // Return auth URL
+    // Microsoft redirected back with an authorization code — exchange it for tokens
+    if (code) {
+      const tokens = await exchangeCodeForTokens(code, redirectUri);
+
+      // Redirect back to the app with tokens as hash params so the frontend can store them
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lea.codrex.com';
+      const hashParams = new URLSearchParams({
+        outlook_access_token: tokens.access_token,
+        outlook_refresh_token: tokens.refresh_token,
+        outlook_expires_in: String(tokens.expires_in),
+      });
+      return NextResponse.redirect(`${appUrl}#${hashParams.toString()}`);
+    }
+
+    // No code — return the auth URL for the frontend to redirect the user to
     const authUrl = getAuthUrl(redirectUri);
-    return NextResponse.json({ auth_url: authUrl });
-    
+    return NextResponse.json({ auth_url: authUrl, redirect_uri: redirectUri });
+
   } catch (error) {
     console.error('Outlook auth error:', error);
     return NextResponse.json(
