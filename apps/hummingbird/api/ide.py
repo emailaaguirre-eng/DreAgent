@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from core.utils.config import get_settings
 from core.utils.auth import get_current_user
-from core.providers.ollama import get_ollama_client
+from core.providers.ollama import get_ollama_client, Message as OllamaMessage, ModelType
 from core.services.rag import get_rag_engine, get_rag_context
 
 logger = logging.getLogger(__name__)
@@ -580,16 +580,18 @@ If you include code, use markdown code blocks with the language specified."""
     messages.append({"role": "user", "content": user_message})
 
     try:
+        ollama_messages = [
+            OllamaMessage(role=m.get("role", "user"), content=m.get("content", ""))
+            for m in messages
+        ]
         response = await ollama.chat(
-            messages=messages,
+            messages=ollama_messages,
+            model_type=ModelType.CODE,
             model=settings.ollama_model_code,
-            options={
-                "temperature": 0.7,
-                "top_p": 0.9,
-            }
+            temperature=0.7,
         )
 
-        response_text = response.get("message", {}).get("content", "")
+        response_text = getattr(response, "content", "") or 
 
         # Extract code suggestions if any
         code_suggestions = []

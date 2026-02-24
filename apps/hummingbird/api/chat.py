@@ -28,8 +28,70 @@ from core.agents import (
     ConversationContext,
 )
 from core.providers.ollama import Message
+from .microsoft import _load_token, _graph_get
 
 router = APIRouter()
+
+
+async def _handle_lea_microsoft_shortcut(message: str):
+    m = (message or "").lower()
+    wants_email = any(k in m for k in ["email", "inbox", "outlook", "messages"])
+    wants_calendar = any(k in m for k in ["calendar", "meeting", "events", "schedule"])
+
+    if not wants_email and not wants_calendar:
+        return None
+
+    token = _load_token()
+    if not token or "access_token" not in token:
+        return ChatResponse(
+            agent="lea",
+            content="I can access your Microsoft data, but you're not connected right now. Please connect via /auth/microsoft/login and I’ll proceed.",
+            confidence="high",
+            model="microsoft-graph",
+        )
+
+    try:
+        if wants_calendar:
+            data = await _graph_get("/me/events?$top=10&$select=subject,organizer,start,end,location")
+            items = (data or {}).get("value", [])[:5]
+            if not items:
+                content = "I checked your calendar and found no upcoming events."
+            else:
+                lines = ["I checked your calendar. Here are the next events:"]
+                for e in items:
+                    subject = e.get("subject", "(No Subject)")
+                    start = (e.get("start") or {}).get("dateTime", "")
+                    location = (e.get("location") or {}).get("displayName", "")
+                    lines.append(f"- {subject} | {start} | {location}")
+                content = "\n".join(lines)
+        else:
+            data = await _graph_get("/me/mailFolders/inbox/messages?$top=10&$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,isRead,bodyPreview&$orderby=receivedDateTime desc")
+            items = (data or {}).get("value", [])[:5]
+            if not items:
+                content = "I checked your inbox and found no recent emails."
+            else:
+                lines = ["I checked your inbox. Here are the latest emails:"]
+                for e in items:
+                    subject = e.get("subject", "(No Subject)")
+                    sender = ((e.get("from") or {}).get("emailAddress") or {}).get("address", "Unknown")
+                    received = e.get("receivedDateTime", "")
+                    lines.append(f"- {subject} | from {sender} | {received}")
+                content = "\n".join(lines)
+
+        return ChatResponse(
+            agent="lea",
+            content=content,
+            confidence="high",
+            model="microsoft-graph",
+        )
+    except Exception as ex:
+        return ChatResponse(
+            agent="lea",
+            content=f"I tried to access Microsoft data but hit an error: {str(ex)}",
+            confidence="low",
+            model="microsoft-graph",
+        )
+
 
 
 # =============================================================================
@@ -194,6 +256,12 @@ async def chat(
             import logging
             logging.getLogger(__name__).warning(f"Image analysis failed: {e}")
             # Continue without image analysis
+
+    # Fast path: Lea Microsoft actions (non-streaming)
+    if (request.agent or "lea") == "lea" and not request.stream:
+        shortcut = await _handle_lea_microsoft_shortcut(request.message)
+        if shortcut is not None:
+            return shortcut
 
     # Handle streaming
     if request.stream:
