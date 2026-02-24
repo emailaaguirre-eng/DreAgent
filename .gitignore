@@ -49,3 +49,6 @@ Thumbs.db
 
 # Local runtime logs
 /data/*.log*
+
+# Local auth tokens
+data/memory/microsoft_token.json

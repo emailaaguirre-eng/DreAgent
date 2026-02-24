@@ -42,6 +42,7 @@ from .api.knowledge import router as knowledge_router  # Phase 3: RAG
 from .api.vision import router as vision_router  # Phase 4: Vision/OCR
 from .api.documents import router as documents_router  # Phase 5: Document Generation
 from .api.ide import router as ide_router  # Phase 7: Chiquis IDE
+from .api.microsoft import router as microsoft_router
 
 settings = get_settings()
 
@@ -200,6 +201,8 @@ app.include_router(knowledge_router, prefix="/api/knowledge", tags=["Knowledge B
 app.include_router(vision_router, prefix="/api/vision", tags=["Vision & OCR"])  # Phase 4: Vision/OCR
 app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])  # Phase 5: Document Generation
 app.include_router(ide_router, prefix="/api/ide", tags=["Chiquis IDE"])  # Phase 7: IDE
+app.include_router(microsoft_router, prefix="/api/microsoft", tags=["Microsoft"])
+app.include_router(microsoft_router, prefix="/auth/microsoft", tags=["Microsoft (Auth)"])
 
 
 # =============================================================================

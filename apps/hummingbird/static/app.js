@@ -649,3 +649,59 @@ function init() {
 
 // Start the app
 init();
+
+// ===== Import / Export wiring =====
+(function setupImportExport() {
+  const importBtn = document.getElementById('importBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const fileInput = document.getElementById('fileInput');
+
+  if (!importBtn || !exportBtn || !fileInput) return;
+
+  importBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    for (const file of files) {
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        const res = await fetch('/api/knowledge/upload', {
+          method: 'POST',
+          body: form
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error('Upload failed:', file.name, data);
+          alert(`Upload failed for ${file.name}`);
+        } else {
+          console.log('Uploaded:', file.name, data);
+        }
+      } catch (err) {
+        console.error('Upload error:', file.name, err);
+        alert(`Upload error for ${file.name}`);
+      }
+    }
+
+    fileInput.value = '';
+    alert('Import complete.');
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const chatEl = document.getElementById('chatMessages') || document.querySelector('.chat-messages') || document.body;
+    const text = chatEl.innerText || '';
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lea_chat_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+})();

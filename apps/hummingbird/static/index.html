@@ -46,29 +46,31 @@
         <!-- Main Content -->
         <main class="main-content" id="main-content" style="display: none;">
             <!-- Agent Selector -->
-            <div class="agent-selector">
-                <button class="agent-btn active" data-agent="lea">
-                    <span class="agent-icon">🐦</span>
-                    <span class="agent-name">Lea</span>
-                    <span class="agent-role">Executive Assistant</span>
-                </button>
-                <button class="agent-btn" data-agent="chiquis">
-                    <span class="agent-icon">💻</span>
-                    <span class="agent-name">Chiquis</span>
-                    <span class="agent-role">Coding Partner</span>
-                </button>
-                <a href="/ide" class="agent-btn ide-link" title="Open Chiquis IDE">
-                    <span class="agent-icon">🖥️</span>
-                    <span class="agent-name">IDE</span>
-                    <span class="agent-role">Code Editor</span>
-                </a>
-                <button class="agent-btn" data-agent="grant">
-                    <span class="agent-icon">🏛️</span>
-                    <span class="agent-name">Grant</span>
-                    <span class="agent-role">Incentives Expert</span>
-                </button>
-            </div>
+<div class="agent-selector">
+    <button class="agent-card active" data-agent="lea">
+        <span class="agent-icon">🐦</span>
+        <span class="agent-name">Lea</span>
+        <span class="agent-role">Executive Assistant</span>
+    </button>
 
+    <button class="agent-card" data-agent="chiquis">
+        <span class="agent-icon code-icon">&lt;/&gt;</span>
+        <span class="agent-name">Chiquis</span>
+        <span class="agent-role">Coding Editor</span>
+    </button>
+
+    <button class="agent-card" data-agent="ide">
+        <span class="agent-icon">🖥️</span>
+        <span class="agent-name">IDE</span>
+        <span class="agent-role">Code Editor</span>
+    </button>
+
+    <button class="agent-card" data-agent="grant">
+        <span class="agent-icon">🏛️</span>
+        <span class="agent-name">Grant</span>
+        <span class="agent-role">Incentives Expert</span>
+    </button>
+</div>
             <!-- Chat Container -->
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages">
@@ -95,6 +97,12 @@
                 </button>
             </div>
         </main>
+
+<div class="file-actions" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
+  <input id="fileInput" type="file" multiple style="display:none;" />
+  <button id="importBtn" type="button">Import Files</button>
+  <button id="exportBtn" type="button">Export Chat</button>
+</div>
 
         <!-- Footer -->
         <footer class="app-footer">

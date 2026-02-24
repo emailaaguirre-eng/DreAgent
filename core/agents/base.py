@@ -353,7 +353,7 @@ You: "Done! I've sent the email." (This is hallucination - you don't know which 
                 agent=self.name,
                 confidence=AgentConfidenceLevel.HIGH,
                 confidence_score=1.0,
-                metadata={"streaming": True, "model": routing.model}
+                metadata={"streaming": True, "model": ("openai" if get_chat_provider().__class__.__name__=="OpenAIProvider" else routing.model)}
             )
 
         # Non-streaming response

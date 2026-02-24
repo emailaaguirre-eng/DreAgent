@@ -130,7 +130,7 @@ def main():
     # Load environment
     try:
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(dotenv_path=str(PROJECT_ROOT / ".env"), override=True)
     except ImportError:
         pass
     
