@@ -54,18 +54,11 @@
     </button>
 
     <button class="agent-card" data-agent="chiquis">
-        <span class="agent-icon code-icon">&lt;/&gt;</span>
-        <span class="agent-name">Chiquis</span>
-        <span class="agent-role">Coding Editor</span>
-    </button>
-
-    <button class="agent-card" data-agent="ide">
-        <span class="agent-icon">🖥️</span>
+        <span class="agent-icon code-icon">🖥️</span>
         <span class="agent-name">IDE</span>
         <span class="agent-role">Code Editor</span>
     </button>
-
-    <button class="agent-card" data-agent="grant">
+<button class="agent-card" data-agent="grant">
         <span class="agent-icon">🏛️</span>
         <span class="agent-name">Grant</span>
         <span class="agent-role">Incentives Expert</span>
@@ -96,14 +89,15 @@
                     </svg>
                 </button>
             </div>
+
+            <div class="file-actions">
+                <input id="fileInput" type="file" multiple style="display:none;" />
+                <button id="importBtn" type="button" class="btn-small">Import Files</button>
+                <button id="exportBtn" type="button" class="btn-small">Download Chat</button>
+                <button id="printBtn" type="button" class="btn-small">Print Chat</button>
+            </div>
+
         </main>
-
-<div class="file-actions" style="display:flex; gap:10px; margin-top:10px; justify-content:center;">
-  <input id="fileInput" type="file" multiple style="display:none;" />
-  <button id="importBtn" type="button">Import Files</button>
-  <button id="exportBtn" type="button">Export Chat</button>
-</div>
-
         <!-- Footer -->
         <footer class="app-footer">
             <p>Powered by <strong>CoDre-X</strong> | B & D Servicing LLC</p>

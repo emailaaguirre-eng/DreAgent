@@ -56,7 +56,7 @@ const elements = {
     connectionStatus: document.getElementById('connection-status'),
     userName: document.getElementById('user-name'),
     logoutBtn: document.getElementById('logout-btn'),
-    agentBtns: document.querySelectorAll('.agent-btn'),
+    agentBtns: document.querySelectorAll('.agent-card'),
 };
 
 // =============================================================================
@@ -650,48 +650,50 @@ function init() {
 // Start the app
 init();
 
-// ===== Import / Export wiring =====
+
+// ===== Import / Export / Print + DragDrop wiring =====
 (function setupImportExport() {
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
+  const printBtn = document.getElementById('printBtn');
   const fileInput = document.getElementById('fileInput');
+  const dropTarget = elements.chatMessages;
 
-  if (!importBtn || !exportBtn || !fileInput) return;
+  if (!importBtn || !exportBtn || !fileInput || !dropTarget) return;
 
-  importBtn.addEventListener('click', () => fileInput.click());
+  async function uploadFiles(files) {
+    const fileList = Array.from(files || []);
+    if (!fileList.length) return;
 
-  fileInput.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    for (const file of files) {
+    for (const file of fileList) {
       const form = new FormData();
       form.append('file', file);
 
       try {
-        const res = await fetch('/api/knowledge/upload', {
-          method: 'POST',
-          body: form
-        });
+        const res = await fetch('/api/knowledge/upload', { method: 'POST', body: form });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           console.error('Upload failed:', file.name, data);
           alert(`Upload failed for ${file.name}`);
         } else {
-          console.log('Uploaded:', file.name, data);
+          addMessage('assistant', `Imported file: ${file.name}`, agents[state.currentAgent]?.name || state.currentAgent, 'high');
         }
       } catch (err) {
         console.error('Upload error:', file.name, err);
         alert(`Upload error for ${file.name}`);
       }
     }
+  }
 
+  importBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async (e) => {
+    await uploadFiles(e.target.files);
     fileInput.value = '';
-    alert('Import complete.');
   });
 
   exportBtn.addEventListener('click', () => {
-    const chatEl = document.getElementById('chatMessages') || document.querySelector('.chat-messages') || document.body;
+    const chatEl = document.getElementById('chat-messages') || document.querySelector('.chat-messages') || document.body;
     const text = chatEl.innerText || '';
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -704,4 +706,39 @@ init();
     a.remove();
     URL.revokeObjectURL(url);
   });
+
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      const chatEl = document.getElementById('chat-messages');
+      if (!chatEl) return;
+      const printable = window.open('', '_blank', 'width=900,height=700');
+      if (!printable) return;
+      printable.document.write(`<html><head><title>Chat Print</title></head><body>${chatEl.innerHTML}</body></html>`);
+      printable.document.close();
+      printable.focus();
+      printable.print();
+    });
+  }
+
+  ['dragenter', 'dragover'].forEach((eventName) => {
+    dropTarget.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropTarget.style.outline = '2px dashed #3b82f6';
+    });
+  });
+
+  ['dragleave', 'drop'].forEach((eventName) => {
+    dropTarget.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropTarget.style.outline = '';
+    });
+  });
+
+  dropTarget.addEventListener('drop', async (e) => {
+    const files = e.dataTransfer?.files;
+    await uploadFiles(files);
+  });
 })();
+
