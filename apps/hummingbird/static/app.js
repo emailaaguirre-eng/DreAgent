@@ -484,11 +484,18 @@ function switchAgent(agentName) {
 
 async function loadGreeting(agentKey = state.currentAgent) {
     try {
-        const response = await fetch(`/api/chat/greeting/${agentKey}`);
+        const response = await fetch(`/api/chat/greeting/${agentKey}`, {
+            headers: {
+                ...(state.token && { 'Authorization': `Bearer ${state.token}` }),
+            },
+        });
+
         if (response.ok) {
             const data = await response.json();
             const a = data.agent || agentKey;
             recordMessage(a, 'assistant', data.greeting, a, 'high');
+        } else {
+            console.warn('Greeting request failed:', response.status);
         }
     } catch (error) {
         console.error('Failed to load greeting:', error);
