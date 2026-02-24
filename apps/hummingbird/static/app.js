@@ -556,7 +556,13 @@ elements.messageInput.addEventListener('input', autoResizeInput);
 // Agent buttons
 elements.agentBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        switchAgent(btn.dataset.agent);
+        const agent = btn.dataset.agent;
+        switchAgent(agent);
+
+        // Open IDE when coding card selected
+        if (agent === 'chiquis') {
+            window.location.href = '/static/ide.html';
+        }
     });
 });
 
