@@ -263,6 +263,12 @@ async def chat(
         if shortcut is not None:
             return shortcut
 
+    # Fast path: Lea Microsoft actions (non-streaming)
+    if (request.agent or "lea") == "lea" and not request.stream:
+        shortcut = await _handle_lea_microsoft_shortcut(request.message)
+        if shortcut is not None:
+            return shortcut
+
     # Handle streaming
     if request.stream:
         return StreamingResponse(

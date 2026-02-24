@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from core.utils.config import get_settings
 from core.utils.auth import get_current_user
-from core.providers.ollama import get_ollama_client, Message as OllamaMessage, ModelType
+from core.providers.ollama import get_ollama_client, Message as OllamaMessage, ModelType, Message as OllamaMessage, ModelType
 from core.services.rag import get_rag_engine, get_rag_context
 
 logger = logging.getLogger(__name__)
