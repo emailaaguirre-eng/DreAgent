@@ -591,8 +591,7 @@ If you include code, use markdown code blocks with the language specified."""
             temperature=0.7,
         )
 
-        response_text = getattr(response, "content", "") or 
-
+        response_text = getattr(response, "content", "") or ""
         # Extract code suggestions if any
         code_suggestions = []
         code_blocks = re.findall(r'```[\w]*\n(.*?)```', response_text, re.DOTALL)

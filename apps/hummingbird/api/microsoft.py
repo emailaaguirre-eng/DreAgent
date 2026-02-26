@@ -19,6 +19,9 @@ router = APIRouter()
 # MICROSOFT_REDIRECT_URI=http(s)://<your-domain>/api/microsoft/callback
 
 TOKEN_PATH = settings.memory_path / "microsoft_token.json"
+REPORTS_DIR = settings.data_path / "reports"
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 SCOPES = [
     "User.Read",
@@ -152,3 +155,61 @@ async def calendar(top: int = 10):
     # Read-only: next events
     data = await _graph_get(f"/me/events?$top={top}&$select=subject,organizer,start,end,location")
     return data
+def _flatten_email_row(e: dict) -> dict:
+    sender = ((e.get("from") or {}).get("emailAddress") or {}).get("address", "")
+    sender_name = ((e.get("from") or {}).get("emailAddress") or {}).get("name", "")
+    subject = e.get("subject", "")
+    received = e.get("receivedDateTime", "")
+    is_read = e.get("isRead", False)
+    preview = (e.get("bodyPreview", "") or "").replace("\n", " ").replace("\r", " ")
+    return {
+        "receivedDateTime": received,
+        "from": sender,
+        "fromName": sender_name,
+        "subject": subject,
+        "isRead": is_read,
+        "bodyPreview": preview[:500],
+    }
+
+
+@router.get("/report/email")
+async def generate_email_report(top: int = 100, unread_only: bool = False):
+    filt = "&$filter=isRead eq false" if unread_only else ""
+    data = await _graph_get(
+        f"/me/mailFolders/inbox/messages?$top={top}"
+        f"&$select=id,subject,from,receivedDateTime,isRead,bodyPreview"
+        f"&$orderby=receivedDateTime desc{filt}"
+    )
+    items = (data or {}).get("value", [])
+
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    out = REPORTS_DIR / f"email_report_{ts}.csv"
+
+    fieldnames = ["receivedDateTime", "from", "fromName", "subject", "isRead", "bodyPreview"]
+    with out.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for e in items:
+            writer.writerow(_flatten_email_row(e))
+
+    return {
+        "ok": True,
+        "rows": len(items),
+        "file": out.name,
+        "download_url": f"/api/microsoft/report/email/download/{out.name}",
+    }
+
+
+@router.get("/report/email/download/{filename}")
+async def download_email_report(filename: str):
+    safe_name = Path(filename).name
+    file_path = REPORTS_DIR / safe_name
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return FileResponse(
+        path=str(file_path),
+        media_type="text/csv",
+        filename=safe_name,
+    )
