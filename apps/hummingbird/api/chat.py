@@ -65,18 +65,48 @@ async def _handle_lea_microsoft_shortcut(message: str):
                     lines.append(f"- {subject} | {start} | {location}")
                 content = "\n".join(lines)
         else:
+                       # If user is asking about unread count
+            if "unread" in m:
+                unread_data = await _graph_get("/me/mailFolders/inbox?$select=unreadItemCount")
+                unread_count = (unread_data or {}).get("unreadItemCount", 0)
+                content = f"You currently have {unread_count} unread emails in your inbox."
+                return ChatResponse(
+                    agent="lea",
+                    content=content,
+                    confidence="high",
+                    model="microsoft-graph",
+                )
+
             data = await _graph_get("/me/mailFolders/inbox/messages?$top=10&$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,isRead,bodyPreview&$orderby=receivedDateTime desc")
             items = (data or {}).get("value", [])[:5]
             if not items:
                 content = "I checked your inbox and found no recent emails."
             else:
-                lines = ["I checked your inbox. Here are the latest emails:"]
+                lines = ["Here are your most recent emails:\n"]
+
                 for e in items:
                     subject = e.get("subject", "(No Subject)")
                     sender = ((e.get("from") or {}).get("emailAddress") or {}).get("address", "Unknown")
-                    received = e.get("receivedDateTime", "")
-                    lines.append(f"- {subject} | from {sender} | {received}")
+                    received_raw = e.get("receivedDateTime", "")
+                    preview = e.get("bodyPreview", "")[:200].strip()
+
+                    # Format date cleaner
+                    try:
+                        dt = datetime.fromisoformat(received_raw.replace("Z", "+00:00"))
+                        received = dt.strftime("%Y-%m-%d %I:%M %p")
+                    except:
+                        received = received_raw
+
+                    lines.append(
+                        f"📅 {received}\n"
+                        f"📨 Subject: {subject}\n"
+                        f"👤 From: {sender}\n"
+                        f"📝 Summary: {preview}\n"
+                        f"{'-'*40}"
+                    )
+
                 content = "\n".join(lines)
+
 
         return ChatResponse(
             agent="lea",
@@ -285,7 +315,7 @@ async def chat(
         )
 
         return ChatResponse(
-            agent=response.agent,
+            agent=response.agent.lower(),
             content=response.content,
             confidence=response.confidence.value,
             confidence_score=response.confidence_score,
