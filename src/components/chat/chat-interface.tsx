@@ -16,8 +16,22 @@ import { cn } from '@/lib/utils';
 
 export function ChatInterface() {
   const [mode, setMode] = useState<AgentMode>('general');
+  const [userId, setUserId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const storageKey = 'dreagent_user_id';
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) {
+      setUserId(existing);
+      return;
+    }
+
+    const newUserId = `user-${crypto.randomUUID()}`;
+    window.localStorage.setItem(storageKey, newUserId);
+    setUserId(newUserId);
+  }, []);
 
   const {
     messages,
@@ -30,7 +44,8 @@ export function ChatInterface() {
     stop,
   } = useChat({
     api: '/api/chat',
-    body: { mode, enableRag: true },
+    body: { mode, enableRag: true, userId },
+    headers: userId ? { 'x-user-id': userId } : undefined,
   });
 
   // Auto-scroll to bottom
@@ -198,6 +213,16 @@ export function ChatInterface() {
 }
 
 function EmptyState({ mode }: { mode: AgentMode }) {
+  const assistantNameByMode: Record<AgentMode, string> = {
+    general: 'Grant',
+    'it-support': 'Chiquis',
+    executive: 'Lea',
+    legal: 'Lea',
+    finance: 'Lea',
+    research: 'Lea',
+    incentives: 'Lea',
+  };
+
   const suggestions = {
     general: [
       'What can you help me with?',
@@ -257,7 +282,7 @@ function EmptyState({ mode }: { mode: AgentMode }) {
         How can I help you today?
       </h2>
       <p className="text-text-secondary mb-8 max-w-md">
-        I'm Lea, your AI assistant. Ask me anything or try one of these suggestions:
+        I&apos;m {assistantNameByMode[mode]}, your AI assistant. Ask me anything or try one of these suggestions:
       </p>
 
       <div className="flex flex-wrap gap-2 justify-center max-w-lg">

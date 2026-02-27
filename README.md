@@ -144,15 +144,23 @@ POST /api/knowledge/search
 
 ```bash
 # Get auth URL
-GET /api/outlook/auth
+GET /api/outlook/auth?userId=user-123
 
 # Get emails
-GET /api/outlook/emails
-Authorization: Bearer <access_token>
+GET /api/outlook/emails?userId=user-123&folder=inbox&limit=100&unread_only=true
+# Optional date filters (ISO): start_date=2026-01-01T00:00:00.000Z&end_date=2026-02-01T00:00:00.000Z
+# Authorization header optional when userId token is stored
 
 # Get calendar
-GET /api/outlook/calendar
-Authorization: Bearer <access_token>
+GET /api/outlook/calendar?userId=user-123&days_behind=7&days_ahead=30
+# Authorization header optional when userId token is stored
+
+# Export email history CSV
+GET /api/outlook/email-history?userId=user-123&limit=200&folder=inbox
+# Authorization header optional when userId token is stored
+
+# Export combined email + calendar history CSV
+GET /api/outlook/email-history?userId=user-123&limit=200&include_calendar=true&days_behind=7&days_ahead=30
 ```
 
 ## Agent Modes

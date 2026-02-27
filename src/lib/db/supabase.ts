@@ -63,6 +63,16 @@ export interface KnowledgeDocument {
   created_at: string;
 }
 
+export interface OutlookToken {
+  id: string;
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Conversation operations
 export async function saveConversation(
   userId: string,
@@ -119,4 +129,41 @@ export async function deleteConversation(conversationId: string) {
 
   if (error) throw error;
   return true;
+}
+
+// Outlook token operations
+export async function saveOutlookTokens(
+  userId: string,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: string
+) {
+  const { data, error } = await supabase
+    .from('outlook_tokens')
+    .upsert(
+      {
+        user_id: userId,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as OutlookToken;
+}
+
+export async function getOutlookTokens(userId: string) {
+  const { data, error } = await supabase
+    .from('outlook_tokens')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as OutlookToken | null;
 }

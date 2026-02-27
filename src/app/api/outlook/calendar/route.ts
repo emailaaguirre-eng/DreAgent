@@ -3,27 +3,47 @@
 // Powered by CoDre-X™
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCalendarEvents, createCalendarEvent } from '@/lib/outlook/client';
+import { getCalendarEvents, createCalendarEvent, GraphApiError } from '@/lib/outlook/client';
+import { resolveOutlookAccessToken } from '@/lib/outlook/tokens';
 
 export const runtime = 'nodejs';
 
 // GET - List calendar events
 export async function GET(req: NextRequest) {
   try {
-    const accessToken = getAccessToken(req);
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId') || undefined;
+    const resolved = await resolveOutlookAccessToken({ req, userId });
+    const accessToken = resolved.accessToken;
     if (!accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: 'Outlook not connected. Provide Bearer token or connect via /api/outlook/auth?userId=...',
+        },
+        { status: 401 }
+      );
     }
 
-    const { searchParams } = new URL(req.url);
-    const daysAhead = parseInt(searchParams.get('days_ahead') || '30');
-    const daysBehind = parseInt(searchParams.get('days_behind') || '0');
+    const daysAhead = parseInt(searchParams.get('days_ahead') || '30', 10);
+    const daysBehind = parseInt(searchParams.get('days_behind') || '0', 10);
 
     const events = await getCalendarEvents(accessToken, { daysAhead, daysBehind });
 
-    return NextResponse.json({ events, count: events.length });
+    return NextResponse.json({ events, count: events.length, auth_source: resolved.source });
   } catch (error) {
     console.error('Calendar GET error:', error);
+    if (error instanceof GraphApiError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          hint:
+            error.status === 401
+              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth?userId=...'
+              : undefined,
+        },
+        { status: error.status }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch' },
       { status: 500 }
@@ -34,12 +54,19 @@ export async function GET(req: NextRequest) {
 // POST - Create calendar event
 export async function POST(req: NextRequest) {
   try {
-    const accessToken = getAccessToken(req);
+    const body = await req.json();
+    const { userId } = body as { userId?: string };
+    const resolved = await resolveOutlookAccessToken({ req, userId });
+    const accessToken = resolved.accessToken;
     if (!accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: 'Outlook not connected. Provide Bearer token or connect via /api/outlook/auth?userId=...',
+        },
+        { status: 401 }
+      );
     }
 
-    const body = await req.json();
     const { subject, start, end, location, body: eventBody, attendees } = body as {
       subject: string;
       start: string;
@@ -47,6 +74,7 @@ export async function POST(req: NextRequest) {
       location?: string;
       body?: string;
       attendees?: string[];
+      userId?: string;
     };
 
     if (!subject || !start || !end) {
@@ -62,20 +90,24 @@ export async function POST(req: NextRequest) {
       attendees,
     });
 
-    return NextResponse.json({ event, status: 'created' });
+    return NextResponse.json({ event, status: 'created', auth_source: resolved.source });
   } catch (error) {
     console.error('Calendar POST error:', error);
+    if (error instanceof GraphApiError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          hint:
+            error.status === 401
+              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth?userId=...'
+              : undefined,
+        },
+        { status: error.status }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create' },
       { status: 500 }
     );
   }
-}
-
-function getAccessToken(req: NextRequest): string | null {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-  return null;
 }

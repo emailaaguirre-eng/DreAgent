@@ -4,6 +4,18 @@
 
 const GRAPH_API = 'https://graph.microsoft.com/v1.0';
 
+export class GraphApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'GraphApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 interface GraphRequest {
   accessToken: string;
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -38,7 +50,11 @@ async function graphRequest<T>({
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `Graph API error: ${response.status}`);
+    throw new GraphApiError(
+      error.error?.message || `Graph API error: ${response.status}`,
+      response.status,
+      error.error?.code
+    );
   }
 
   if (response.status === 204) {
@@ -69,9 +85,17 @@ export async function getEmails(
     folder?: string;
     limit?: number;
     unreadOnly?: boolean;
+    startDate?: string;
+    endDate?: string;
   } = {}
 ): Promise<Email[]> {
-  const { folder = 'inbox', limit = 50, unreadOnly = false } = options;
+  const {
+    folder = 'inbox',
+    limit = 50,
+    unreadOnly = false,
+    startDate,
+    endDate,
+  } = options;
 
   const params: Record<string, string> = {
     $top: String(limit),
@@ -79,8 +103,19 @@ export async function getEmails(
     $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead,hasAttachments',
   };
 
+  const filters: string[] = [];
+
   if (unreadOnly) {
-    params.$filter = 'isRead eq false';
+    filters.push('isRead eq false');
+  }
+  if (startDate) {
+    filters.push(`receivedDateTime ge ${startDate}`);
+  }
+  if (endDate) {
+    filters.push(`receivedDateTime le ${endDate}`);
+  }
+  if (filters.length > 0) {
+    params.$filter = filters.join(' and ');
   }
 
   const response = await graphRequest<{ value: Array<{
