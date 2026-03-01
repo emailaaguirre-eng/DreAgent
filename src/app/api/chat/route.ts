@@ -9,6 +9,11 @@ import { getSystemPrompt, getModeConfig, type AgentMode } from '@/lib/ai/prompts
 import { getRelevantContext } from '@/lib/rag/query';
 import { getCalendarEvents, getEmails } from '@/lib/outlook/client';
 import { resolveOutlookAccessToken } from '@/lib/outlook/tokens';
+import {
+  webSearch,
+  filterReliableSearchResults,
+  formatSearchResults,
+} from '@/lib/tools/web-search';
 
 export const runtime = 'nodejs'; // Use Node.js for full OpenAI SDK support
 export const maxDuration = 60;   // Vercel Pro limit
@@ -81,6 +86,57 @@ function parseExecutiveParams(input: string): {
   };
 }
 
+function shouldUseWebSearch(input: string): boolean {
+  const text = input.toLowerCase();
+  return (
+    text.includes('latest') ||
+    text.includes('current') ||
+    text.includes('today') ||
+    text.includes('recent') ||
+    text.includes('news') ||
+    text.includes('update') ||
+    text.includes('according to')
+  );
+}
+
+function getAmbiguityPrompt(
+  mode: AgentMode,
+  userMessage: string
+): string | null {
+  const text = userMessage.trim().toLowerCase();
+  if (!text) {
+    return 'I need a bit more detail before I can help. What would you like me to do?';
+  }
+
+  const veryShort = text.split(/\s+/).length <= 2;
+  const pronounOnlyPattern =
+    /(this|that|it|them|those|these)\??$/.test(text) ||
+    /^(help|fix|review|summarize)\s+(this|that|it)\??$/.test(text);
+
+  if (veryShort || pronounOnlyPattern) {
+    return 'I want to make sure I give one accurate answer. Can you clarify exactly what item, timeframe, and output format you want?';
+  }
+
+  if (mode === 'executive') {
+    const intent = detectExecutiveIntent(text);
+    if (intent === 'email_summary') {
+      const hasTimeHint = /last\s+\d+\s+days?|today|yesterday|this week|this month/.test(text);
+      if (!hasTimeHint) {
+        return 'For an accurate email check, what timeframe should I use (for example: today, last 7 days, or a specific date range)?';
+      }
+    }
+
+    if (intent === 'email_history_export') {
+      const hasFormatHint = /csv|excel|xlsx|powerpoint|pptx/.test(text);
+      if (!hasFormatHint) {
+        return 'I can export this accurately, but I need one format choice: CSV (Excel-compatible) or PowerPoint (.pptx). Which one do you want?';
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -89,12 +145,14 @@ export async function POST(req: NextRequest) {
       mode = 'general',
       userId,
       enableRag = true,
+      enableWebSearch = true,
       outlookAccessToken,
     } = body as {
       messages: { role: 'user' | 'assistant'; content: string }[];
       mode?: AgentMode;
       userId?: string;
       enableRag?: boolean;
+      enableWebSearch?: boolean;
       outlookAccessToken?: string;
     };
 
@@ -105,14 +163,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const lastUserMessage = getLastUserMessage(messages);
+
+    const ambiguityPrompt = getAmbiguityPrompt(mode, lastUserMessage);
+
     // Get mode configuration
     const modeConfig = getModeConfig(mode);
 
     // Get RAG context if enabled
     let ragContext = '';
-    const lastUserMessage = getLastUserMessage(messages);
     if (enableRag && lastUserMessage) {
       ragContext = await getRelevantContext(lastUserMessage, userId);
+    }
+
+    // Get web context when query likely needs current info
+    let webContext = '';
+    if (enableWebSearch && lastUserMessage && shouldUseWebSearch(lastUserMessage)) {
+      const rawSearch = await webSearch(lastUserMessage);
+      const reliableSearch = filterReliableSearchResults(rawSearch, 5);
+      webContext = formatSearchResults(reliableSearch);
+      if (!webContext) {
+        webContext =
+          '## Web Search Results\nNo reliable web sources were found for this query. Ask clarifying questions or explain what verified source type is needed.';
+      }
     }
 
     let executiveActionContext = '';
@@ -219,14 +292,21 @@ Note: Use the same authenticated session or provide Authorization: Bearer <acces
 
     // Build system prompt with RAG context
     const systemPrompt = getSystemPrompt(mode, ragContext);
-    const systemPromptWithActions = executiveActionContext
-      ? `${systemPrompt}\n\n## Verified Outlook Action Context\n\n${executiveActionContext}\n\nUse this verified action context for your response. Do not claim any Outlook action succeeded unless it appears in this context.`
-      : systemPrompt;
+    let systemPromptWithContext = systemPrompt;
+    if (ambiguityPrompt) {
+      systemPromptWithContext += `\n\n## Clarification Required\n\nThe current user request is ambiguous. Ask this clarification question first and do not provide a final answer yet:\n"${ambiguityPrompt}"`;
+    }
+    if (webContext) {
+      systemPromptWithContext += `\n\n## Verified Web Context\n\n${webContext}\n\nUse only these web sources for web-backed claims in this response.`;
+    }
+    if (executiveActionContext) {
+      systemPromptWithContext += `\n\n## Verified Outlook Action Context\n\n${executiveActionContext}\n\nUse this verified action context for your response. Do not claim any Outlook action succeeded unless it appears in this context.`;
+    }
 
     // Stream the response using Vercel AI SDK
     const result = await streamText({
       model: openai(modeConfig.model),
-      system: systemPromptWithActions,
+      system: systemPromptWithContext,
       messages,
       temperature: modeConfig.temperature,
       maxTokens: 4096,

@@ -115,7 +115,8 @@ Content-Type: application/json
 {
   "messages": [{"role": "user", "content": "Hello!"}],
   "mode": "general",
-  "enableRag": true
+  "enableRag": true,
+  "enableWebSearch": true
 }
 ```
 
@@ -186,6 +187,11 @@ GET /api/outlook/email-history?userId=user-123&limit=200&include_calendar=true&d
 | `OUTLOOK_CLIENT_SECRET` | No | Azure AD app secret |
 | `OUTLOOK_TENANT_ID` | No | Azure AD tenant ID |
 | `SERPAPI_API_KEY` | No | For web search |
+
+Web search safety notes:
+- Chat only performs web search for likely current-events queries (for example: latest/current/news/recent).
+- Results are filtered to more reliable domains (official/government/academic and major wire services where available).
+- If no reliable source is available, the assistant should say so instead of guessing.
 
 ## License
 

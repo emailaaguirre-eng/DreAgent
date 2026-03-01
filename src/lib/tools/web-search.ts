@@ -13,6 +13,54 @@ interface SearchResponse {
   query: string;
 }
 
+const RELIABLE_DOMAINS = [
+  'reuters.com',
+  'apnews.com',
+  'associatedpress.com',
+  'nature.com',
+  'science.org',
+  'nejm.org',
+  'thelancet.com',
+  'jamanetwork.com',
+  'who.int',
+  'cdc.gov',
+  'nih.gov',
+  'nasa.gov',
+  'noaa.gov',
+  'sec.gov',
+  'irs.gov',
+  'federalreserve.gov',
+  'europa.eu',
+  'oecd.org',
+  'imf.org',
+  'worldbank.org',
+];
+
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+function isReliableDomain(hostname: string): boolean {
+  if (!hostname) return false;
+  if (
+    hostname.endsWith('.gov') ||
+    hostname.endsWith('.edu') ||
+    hostname.endsWith('.int') ||
+    hostname.endsWith('.org')
+  ) {
+    // Allow institutional domains by default but still keep explicit list for key news/science sources.
+    return true;
+  }
+
+  return RELIABLE_DOMAINS.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+}
+
 /**
  * Search the web using SerpAPI
  */
@@ -55,6 +103,21 @@ export async function webSearch(query: string): Promise<SearchResponse> {
     console.error('Web search error:', error);
     return { results: [], query };
   }
+}
+
+export function filterReliableSearchResults(
+  response: SearchResponse,
+  maxResults = 5
+): SearchResponse {
+  const reliable = response.results.filter((result) => {
+    const hostname = getHostname(result.link);
+    return isReliableDomain(hostname);
+  });
+
+  return {
+    query: response.query,
+    results: reliable.slice(0, maxResults),
+  };
 }
 
 /**
