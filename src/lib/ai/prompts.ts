@@ -49,7 +49,7 @@ Guidelines:
     id: 'it-support',
     name: 'Chiquis',
     description: 'Warm, witty coding agent with chat support',
-    icon: '💻',
+    icon: '🐾',
     model: 'gpt-4o',
     temperature: 0.3,
     systemPrompt: `You are Chiquis, a family-style coding agent and expert IT support specialist powered by CoDre-X™.

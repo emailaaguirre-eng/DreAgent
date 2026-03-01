@@ -19,6 +19,7 @@ export const runtime = 'nodejs'; // Use Node.js for full OpenAI SDK support
 export const maxDuration = 60;   // Vercel Pro limit
 
 type ExecutiveIntent = 'email_summary' | 'calendar_summary' | 'email_history_export' | 'none';
+type SupportedModel = 'gpt-4o-mini' | 'gpt-4o' | 'gpt-4-turbo';
 
 function getLastUserMessage(
   messages: { role: 'user' | 'assistant'; content: string }[]
@@ -135,6 +136,17 @@ function getAmbiguityPrompt(
   }
 
   return null;
+}
+
+function getModelFallbackOrder(primary: SupportedModel): SupportedModel[] {
+  const ordered: SupportedModel[] = [primary];
+  const fallbacks: SupportedModel[] = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'];
+  for (const model of fallbacks) {
+    if (!ordered.includes(model)) {
+      ordered.push(model);
+    }
+  }
+  return ordered;
 }
 
 export async function POST(req: NextRequest) {
@@ -303,14 +315,34 @@ Note: Use the same authenticated session or provide Authorization: Bearer <acces
       systemPromptWithContext += `\n\n## Verified Outlook Action Context\n\n${executiveActionContext}\n\nUse this verified action context for your response. Do not claim any Outlook action succeeded unless it appears in this context.`;
     }
 
-    // Stream the response using Vercel AI SDK
-    const result = await streamText({
-      model: openai(modeConfig.model),
-      system: systemPromptWithContext,
-      messages,
-      temperature: modeConfig.temperature,
-      maxTokens: 4096,
-    });
+    // Stream the response using Vercel AI SDK with model fallback
+    const candidateModels = getModelFallbackOrder(modeConfig.model);
+    let lastError: unknown = null;
+    let result: Awaited<ReturnType<typeof streamText>> | null = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        result = await streamText({
+          model: openai(modelName),
+          system: systemPromptWithContext,
+          messages,
+          temperature: modeConfig.temperature,
+          maxTokens: 4096,
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+        console.warn(`Model ${modelName} failed, trying fallback model.`);
+      }
+    }
+
+    if (!result) {
+      throw new Error(
+        lastError instanceof Error
+          ? `All model attempts failed: ${lastError.message}`
+          : 'All model attempts failed'
+      );
+    }
 
     // Return streaming response
     return result.toDataStreamResponse();

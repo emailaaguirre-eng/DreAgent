@@ -37,7 +37,7 @@ export function ModeSelector({ currentMode, onModeChange }: ModeSelectorProps) {
               : {}
           }
         >
-          <span>{mode.icon}</span>
+          <span className="text-white">{mode.icon}</span>
           <span className="hidden sm:inline">{mode.name}</span>
         </motion.button>
       ))}

@@ -7,7 +7,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from 'ai/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, RotateCcw } from 'lucide-react';
+import { Send, Sparkles, RotateCcw, FileDown } from 'lucide-react';
 import { ModeSelector } from './mode-selector';
 import { MessageBubble, TypingIndicator } from './message-bubble';
 import { VoiceInput } from './voice-input';
@@ -17,8 +17,11 @@ import { cn } from '@/lib/utils';
 export function ChatInterface() {
   const [mode, setMode] = useState<AgentMode>('general');
   const [userId, setUserId] = useState<string>('');
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const storageKey = 'dreagent_user_id';
@@ -41,7 +44,6 @@ export function ChatInterface() {
     handleSubmit,
     isLoading,
     reload,
-    stop,
   } = useChat({
     api: '/api/chat',
     body: { mode, enableRag: true, userId },
@@ -65,7 +67,7 @@ export function ChatInterface() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (input.trim() && !isLoading) {
-        handleSubmit(e as unknown as React.FormEvent);
+        formRef.current?.requestSubmit();
       }
     }
   };
@@ -75,6 +77,61 @@ export function ChatInterface() {
     setInput(text);
     inputRef.current?.focus();
   }, [setInput]);
+
+  const downloadExecutiveReport = useCallback(async (includeCalendar: boolean) => {
+    if (!userId) {
+      setDownloadStatus('User session not ready yet. Try again in a moment.');
+      return;
+    }
+
+    try {
+      setIsDownloadingReport(true);
+      setDownloadStatus('');
+
+      const params = new URLSearchParams({
+        userId,
+        folder: 'inbox',
+        limit: '200',
+        include_calendar: String(includeCalendar),
+        days_behind: '30',
+        days_ahead: '30',
+      });
+      const url = `/api/outlook/email-history?${params.toString()}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(
+          errorPayload?.error || 'Unable to generate report file right now.'
+        );
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+
+      const fallbackName = includeCalendar
+        ? `outlook-history-${new Date().toISOString().slice(0, 10)}.csv`
+        : `email-history-${new Date().toISOString().slice(0, 10)}.csv`;
+      const disposition = response.headers.get('content-disposition');
+      const filenameMatch = disposition?.match(/filename=\"([^\"]+)\"/i);
+      a.download = filenameMatch?.[1] || fallbackName;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setDownloadStatus('Report downloaded successfully.');
+    } catch (error) {
+      setDownloadStatus(
+        error instanceof Error ? error.message : 'Report download failed.'
+      );
+    } finally {
+      setIsDownloadingReport(false);
+    }
+  }, [userId]);
 
   return (
     <div className="flex flex-col h-screen max-h-screen">
@@ -134,6 +191,7 @@ export function ChatInterface() {
       {/* Input area */}
       <footer className="flex-shrink-0 px-4 py-4 border-t border-white/5 bg-surface-900/50 backdrop-blur">
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="max-w-4xl mx-auto"
         >
@@ -206,6 +264,48 @@ export function ChatInterface() {
           <p className="text-center text-xs text-text-muted mt-2">
             Press Enter to send • Shift+Enter for new line
           </p>
+
+          {mode === 'executive' && (
+            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => downloadExecutiveReport(false)}
+                disabled={isDownloadingReport}
+                className={cn(
+                  'px-3 py-2 rounded-lg text-xs font-medium',
+                  'bg-surface-700/70 text-text-secondary border border-white/10',
+                  'hover:bg-surface-700 hover:text-text-primary',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'inline-flex items-center gap-1.5 transition-colors duration-200'
+                )}
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                Download Email CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={() => downloadExecutiveReport(true)}
+                disabled={isDownloadingReport}
+                className={cn(
+                  'px-3 py-2 rounded-lg text-xs font-medium',
+                  'bg-surface-700/70 text-text-secondary border border-white/10',
+                  'hover:bg-surface-700 hover:text-text-primary',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'inline-flex items-center gap-1.5 transition-colors duration-200'
+                )}
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                Download Email + Calendar CSV
+              </button>
+            </div>
+          )}
+
+          {downloadStatus && (
+            <p className="text-center text-xs text-text-muted mt-2">
+              {downloadStatus}
+            </p>
+          )}
         </form>
       </footer>
     </div>
