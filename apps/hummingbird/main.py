@@ -8,6 +8,7 @@ FastAPI application entry point.
 """
 
 import logging
+import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -226,6 +227,26 @@ async def robots():
 
 
 # Serve frontend
+
+@app.get("/api/version", include_in_schema=False)
+async def api_version():
+    """Return live build/version information for deploy verification."""
+    repo_root = Path(__file__).resolve().parents[2]
+
+    def _git(*args: str) -> str:
+        try:
+            return subprocess.check_output(["git", *args], cwd=repo_root, text=True).strip()
+        except Exception:
+            return "unknown"
+
+    return {
+        "app": "Hummingbird-LEA",
+        "commitSha": _git("rev-parse", "--short", "HEAD"),
+        "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        "buildTimestamp": _git("show", "-s", "--format=%cI", "HEAD"),
+        "now": datetime.utcnow().isoformat() + "Z",
+    }
+
 @app.get("/", include_in_schema=False)
 async def root():
     """Serve the main frontend page"""
