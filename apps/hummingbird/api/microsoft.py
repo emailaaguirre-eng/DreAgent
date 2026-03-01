@@ -4,6 +4,7 @@ from typing import Optional
 
 import httpx
 import msal
+from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 
@@ -19,7 +20,10 @@ router = APIRouter()
 # MICROSOFT_REDIRECT_URI=http(s)://<your-domain>/api/microsoft/callback
 
 TOKEN_PATH = settings.memory_path / "microsoft_token.json"
-REPORTS_DIR = settings.data_path / "reports"
+_reports_base = getattr(settings, "data_path", Path("data"))
+if isinstance(_reports_base, str):
+    _reports_base = Path(_reports_base)
+REPORTS_DIR = _reports_base / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 

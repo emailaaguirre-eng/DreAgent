@@ -28,6 +28,7 @@ PUBLIC_API_PREFIXES = (
     "/api/microsoft",
     "/api/auth",
     "/api/health",  # Optional: remove if you want health locked down too
+    "/api/version",
 )
 
 
