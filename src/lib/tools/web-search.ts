@@ -61,6 +61,11 @@ function isReliableDomain(hostname: string): boolean {
   );
 }
 
+/** Test helper — does not change production filter behavior. */
+export function isReliableDomainForTests(hostname: string): boolean {
+  return isReliableDomain(hostname);
+}
+
 /**
  * Search the web using SerpAPI
  */

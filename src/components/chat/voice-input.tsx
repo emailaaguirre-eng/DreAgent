@@ -93,7 +93,7 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
         'p-3 rounded-full transition-all duration-200',
         isRecording
           ? 'bg-red-500 text-white voice-pulse'
-          : 'bg-surface-700 text-text-secondary hover:bg-surface-700/80 hover:text-text-primary',
+          : 'bg-surface-700 text-text-secondary border border-white/15 hover:bg-surface-700/90 hover:text-text-primary',
         (disabled || isProcessing) && 'opacity-50 cursor-not-allowed'
       )}
       whileHover={{ scale: 1.05 }}

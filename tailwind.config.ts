@@ -33,11 +33,11 @@ const config: Config = {
           900: '#0a0f1a',
           950: '#050709',
         },
-        // Text colors
+        // Text colors (tuned for readable contrast on dark surfaces)
         text: {
           primary: '#f8fafc',
-          secondary: '#94a3b8',
-          muted: '#64748b',
+          secondary: '#cbd5e1',
+          muted: '#94a3b8',
         },
       },
       fontFamily: {

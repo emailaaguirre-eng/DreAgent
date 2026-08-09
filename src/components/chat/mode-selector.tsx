@@ -5,7 +5,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MODES, type AgentMode } from '@/lib/ai/prompts';
+import {
+  MODES,
+  VISIBLE_AGENT_MODES,
+  normalizeToVisibleMode,
+  type AgentMode,
+} from '@/lib/ai/prompts';
 import { cn } from '@/lib/utils';
 
 interface ModeSelectorProps {
@@ -14,33 +19,43 @@ interface ModeSelectorProps {
 }
 
 export function ModeSelector({ currentMode, onModeChange }: ModeSelectorProps) {
-  const modes = Object.values(MODES);
+  const activeMode = normalizeToVisibleMode(currentMode);
+  const modes = VISIBLE_AGENT_MODES.map((id) => MODES[id]);
 
   return (
     <div className="flex flex-wrap gap-2 justify-center">
-      {modes.map((mode) => (
-        <motion.button
-          key={mode.id}
-          onClick={() => onModeChange(mode.id)}
-          className={cn(
-            'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
-            'flex items-center gap-2',
-            currentMode === mode.id
-              ? 'bg-brand-500 text-white shadow-lg'
-              : 'bg-surface-700/50 text-text-secondary hover:bg-surface-700 hover:text-text-primary'
-          )}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          style={
-            currentMode === mode.id
-              ? { boxShadow: '0 4px 15px rgba(205, 111, 77, 0.3)' }
-              : {}
-          }
-        >
-          <span className="text-white">{mode.icon}</span>
-          <span className="hidden sm:inline">{mode.name}</span>
-        </motion.button>
-      ))}
+      {modes.map((mode) => {
+        const isActive = activeMode === mode.id;
+        return (
+          <motion.button
+            key={mode.id}
+            type="button"
+            onClick={() => onModeChange(mode.id)}
+            className={cn(
+              'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+              'flex items-center gap-2 border',
+              isActive
+                ? 'bg-brand-500 text-white border-brand-400/40 shadow-lg'
+                : 'bg-surface-700 text-text-primary border-white/15 hover:bg-surface-700/90 hover:border-white/25 hover:text-text-primary'
+            )}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={
+              isActive
+                ? { boxShadow: '0 4px 15px rgba(205, 111, 77, 0.3)' }
+                : {}
+            }
+          >
+            <span
+              className={isActive ? 'text-white' : 'text-text-secondary'}
+              aria-hidden
+            >
+              {mode.icon}
+            </span>
+            <span className="hidden sm:inline">{mode.name}</span>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
