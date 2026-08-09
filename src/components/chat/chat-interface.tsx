@@ -14,8 +14,40 @@ import { VoiceInput } from './voice-input';
 import { type AgentMode } from '@/lib/ai/prompts';
 import { cn } from '@/lib/utils';
 
+const MODE_STORAGE_KEY = 'dreagent_last_mode';
+const USER_STORAGE_KEY = 'dreagent_user_id';
+
+const MODE_CAPABILITIES: Record<AgentMode, string[]> = {
+  general: [
+    'General Q&A and triage',
+    'No live mail provider (switch to Lea Executive)',
+  ],
+  'it-support': ['Debugging', 'Code review', 'Cloud & sysadmin'],
+  executive: [
+    'Mail/calendar when a provider is connected',
+    'Email & calendar drafts (send/create not enabled)',
+    'CSV export if provider configured',
+  ],
+  legal: ['Contract review', 'Legal research (not legal advice)'],
+  finance: ['Analysis frameworks', 'Tax concepts (not CPA advice)'],
+  research: ['Deep explanations', 'Comparisons'],
+  incentives: ['Program checklists', 'Eligibility framing'],
+};
+
+function isAgentMode(value: string | null): value is AgentMode {
+  return (
+    value === 'general' ||
+    value === 'it-support' ||
+    value === 'executive' ||
+    value === 'legal' ||
+    value === 'finance' ||
+    value === 'research' ||
+    value === 'incentives'
+  );
+}
+
 export function ChatInterface() {
-  const [mode, setMode] = useState<AgentMode>('general');
+  const [mode, setMode] = useState<AgentMode>('executive');
   const [userId, setUserId] = useState<string>('');
   const [isDownloadingReport, setIsDownloadingReport] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string>('');
@@ -24,16 +56,29 @@ export function ChatInterface() {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    const storageKey = 'dreagent_user_id';
-    const existing = window.localStorage.getItem(storageKey);
-    if (existing) {
-      setUserId(existing);
-      return;
+    const existingUser = window.localStorage.getItem(USER_STORAGE_KEY);
+    if (existingUser) {
+      setUserId(existingUser);
+    } else {
+      const newUserId = `user-${crypto.randomUUID()}`;
+      window.localStorage.setItem(USER_STORAGE_KEY, newUserId);
+      setUserId(newUserId);
     }
 
-    const newUserId = `user-${crypto.randomUUID()}`;
-    window.localStorage.setItem(storageKey, newUserId);
-    setUserId(newUserId);
+    const storedMode = window.localStorage.getItem(MODE_STORAGE_KEY);
+    if (isAgentMode(storedMode)) {
+      setMode(storedMode);
+    } else {
+      setMode('executive');
+      window.localStorage.setItem(MODE_STORAGE_KEY, 'executive');
+    }
+  }, []);
+
+  const handleModeChange = useCallback((next: AgentMode) => {
+    setMode(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(MODE_STORAGE_KEY, next);
+    }
   }, []);
 
   const {
@@ -50,19 +95,16 @@ export function ChatInterface() {
     headers: userId ? { 'x-user-id': userId } : undefined,
   });
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-resize textarea
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     handleInputChange(e);
     e.target.style.height = 'auto';
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
-  // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -72,73 +114,84 @@ export function ChatInterface() {
     }
   };
 
-  // Voice input callback
-  const handleVoiceTranscript = useCallback((text: string) => {
-    setInput(text);
-    inputRef.current?.focus();
-  }, [setInput]);
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      setInput(text);
+      inputRef.current?.focus();
+    },
+    [setInput]
+  );
 
-  const downloadExecutiveReport = useCallback(async (includeCalendar: boolean) => {
-    if (!userId) {
-      setDownloadStatus('User session not ready yet. Try again in a moment.');
-      return;
-    }
+  const applySuggestion = useCallback(
+    (text: string) => {
+      setInput(text);
+      inputRef.current?.focus();
+    },
+    [setInput]
+  );
 
-    try {
-      setIsDownloadingReport(true);
-      setDownloadStatus('');
-
-      const params = new URLSearchParams({
-        userId,
-        folder: 'inbox',
-        limit: '200',
-        include_calendar: String(includeCalendar),
-        days_behind: '30',
-        days_ahead: '30',
-      });
-      const url = `/api/outlook/email-history?${params.toString()}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => null);
-        throw new Error(
-          errorPayload?.error || 'Unable to generate report file right now.'
-        );
+  const downloadExecutiveReport = useCallback(
+    async (includeCalendar: boolean) => {
+      if (!userId) {
+        setDownloadStatus('User session not ready yet. Try again in a moment.');
+        return;
       }
 
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
+      try {
+        setIsDownloadingReport(true);
+        setDownloadStatus('');
 
-      const fallbackName = includeCalendar
-        ? `outlook-history-${new Date().toISOString().slice(0, 10)}.csv`
-        : `email-history-${new Date().toISOString().slice(0, 10)}.csv`;
-      const disposition = response.headers.get('content-disposition');
-      const filenameMatch = disposition?.match(/filename=\"([^\"]+)\"/i);
-      a.download = filenameMatch?.[1] || fallbackName;
+        const params = new URLSearchParams({
+          userId,
+          folder: 'inbox',
+          limit: '200',
+          include_calendar: String(includeCalendar),
+          days_behind: '30',
+          days_ahead: '30',
+        });
+        const url = `/api/outlook/email-history?${params.toString()}`;
+        const response = await fetch(url);
 
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => null);
+          throw new Error(
+            errorPayload?.error || 'Unable to generate report file right now.'
+          );
+        }
 
-      setDownloadStatus('Report downloaded successfully.');
-    } catch (error) {
-      setDownloadStatus(
-        error instanceof Error ? error.message : 'Report download failed.'
-      );
-    } finally {
-      setIsDownloadingReport(false);
-    }
-  }, [userId]);
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+
+        const fallbackName = includeCalendar
+          ? `outlook-history-${new Date().toISOString().slice(0, 10)}.csv`
+          : `email-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        const disposition = response.headers.get('content-disposition');
+        const filenameMatch = disposition?.match(/filename=\"([^\"]+)\"/i);
+        a.download = filenameMatch?.[1] || fallbackName;
+
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+
+        setDownloadStatus('Report downloaded successfully.');
+      } catch (error) {
+        setDownloadStatus(
+          error instanceof Error ? error.message : 'Report download failed.'
+        );
+      } finally {
+        setIsDownloadingReport(false);
+      }
+    },
+    [userId]
+  );
 
   return (
     <div className="flex flex-col h-screen max-h-screen">
-      {/* Header */}
       <header className="flex-shrink-0 px-4 py-4 border-b border-white/5">
         <div className="max-w-4xl mx-auto">
-          {/* Logo and title */}
           <div className="flex items-center justify-center gap-3 mb-4">
             <motion.div
               className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"
@@ -151,22 +204,29 @@ export function ChatInterface() {
               <h1 className="text-xl font-semibold text-text-primary">
                 DreAgent
               </h1>
-              <p className="text-xs text-text-muted">
-                Powered by CoDre-X™
-              </p>
+              <p className="text-xs text-text-muted">Powered by CoDre-X™</p>
             </div>
           </div>
 
-          {/* Mode selector */}
-          <ModeSelector currentMode={mode} onModeChange={setMode} />
+          <ModeSelector currentMode={mode} onModeChange={handleModeChange} />
+
+          <div className="mt-3 flex flex-wrap gap-2 justify-center">
+            {MODE_CAPABILITIES[mode].map((cap) => (
+              <span
+                key={cap}
+                className="px-2.5 py-1 rounded-full text-[11px] bg-surface-700/40 text-text-secondary border border-white/5"
+              >
+                {cap}
+              </span>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* Messages area */}
       <main className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-4">
           {messages.length === 0 ? (
-            <EmptyState mode={mode} />
+            <EmptyState mode={mode} onSuggest={applySuggestion} />
           ) : (
             <AnimatePresence mode="popLayout">
               {messages.map((message) => (
@@ -174,7 +234,10 @@ export function ChatInterface() {
                   key={message.id}
                   role={message.role as 'user' | 'assistant'}
                   content={message.content}
-                  isStreaming={isLoading && message.id === messages[messages.length - 1]?.id}
+                  isStreaming={
+                    isLoading &&
+                    message.id === messages[messages.length - 1]?.id
+                  }
                 />
               ))}
             </AnimatePresence>
@@ -188,28 +251,25 @@ export function ChatInterface() {
         </div>
       </main>
 
-      {/* Input area */}
       <footer className="flex-shrink-0 px-4 py-4 border-t border-white/5 bg-surface-900/50 backdrop-blur">
-        <form
-          ref={formRef}
-          onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto"
-        >
+        <form ref={formRef} onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           <div className="flex items-end gap-3">
-            {/* Voice input */}
             <VoiceInput
               onTranscript={handleVoiceTranscript}
               disabled={isLoading}
             />
 
-            {/* Text input */}
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask me anything..."
+                placeholder={
+                  mode === 'executive'
+                    ? 'Ask Lea to plan, draft mail, or check a connected inbox…'
+                    : 'Ask me anything...'
+                }
                 rows={1}
                 disabled={isLoading}
                 className={cn(
@@ -224,7 +284,6 @@ export function ChatInterface() {
               />
             </div>
 
-            {/* Send button */}
             <motion.button
               type="submit"
               disabled={!input.trim() || isLoading}
@@ -241,7 +300,6 @@ export function ChatInterface() {
               <Send className="w-5 h-5" />
             </motion.button>
 
-            {/* Reload button (when there are messages) */}
             {messages.length > 0 && (
               <motion.button
                 type="button"
@@ -312,22 +370,28 @@ export function ChatInterface() {
   );
 }
 
-function EmptyState({ mode }: { mode: AgentMode }) {
+function EmptyState({
+  mode,
+  onSuggest,
+}: {
+  mode: AgentMode;
+  onSuggest: (text: string) => void;
+}) {
   const assistantNameByMode: Record<AgentMode, string> = {
     general: 'Grant',
     'it-support': 'Chiquis',
-    executive: 'Lea',
-    legal: 'Lea',
-    finance: 'Lea',
-    research: 'Lea',
-    incentives: 'Lea',
+    executive: 'Lea Executive',
+    legal: 'Lea Legal',
+    finance: 'Lea Finance',
+    research: 'Lea Research',
+    incentives: 'Lea Incentives',
   };
 
-  const suggestions = {
+  const suggestions: Record<AgentMode, string[]> = {
     general: [
       'What can you help me with?',
-      'Summarize my last 5 emails',
-      'What meetings do I have today?',
+      'Help me prioritize my work today',
+      'When should I switch to Lea Executive?',
     ],
     'it-support': [
       'Debug this Python error...',
@@ -335,9 +399,10 @@ function EmptyState({ mode }: { mode: AgentMode }) {
       'Review my code for security issues',
     ],
     executive: [
-      'Draft a follow-up email for the client meeting',
-      'Prepare talking points for tomorrow\'s presentation',
-      'Organize my calendar for next week',
+      'Check my inbox for the last 7 days',
+      'What meetings do I have this week?',
+      'Draft a follow-up email to the client about next steps',
+      'Export my email history as CSV',
     ],
     legal: [
       'Explain this contract clause',
@@ -369,7 +434,7 @@ function EmptyState({ mode }: { mode: AgentMode }) {
     >
       <motion.div
         className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center mb-6"
-        animate={{ 
+        animate={{
           rotate: [0, 5, -5, 0],
           scale: [1, 1.02, 1],
         }}
@@ -382,13 +447,16 @@ function EmptyState({ mode }: { mode: AgentMode }) {
         How can I help you today?
       </h2>
       <p className="text-text-secondary mb-8 max-w-md">
-        I&apos;m {assistantNameByMode[mode]}, your AI assistant. Ask me anything or try one of these suggestions:
+        I&apos;m {assistantNameByMode[mode]}, your AI assistant. Ask me anything
+        or try one of these suggestions:
       </p>
 
       <div className="flex flex-wrap gap-2 justify-center max-w-lg">
         {suggestions[mode].map((suggestion, i) => (
           <motion.button
             key={i}
+            type="button"
+            onClick={() => onSuggest(suggestion)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}

@@ -6,6 +6,14 @@ import { supabase } from '@/lib/db/supabase';
 import { generateEmbedding } from './embeddings';
 import type { SearchResult } from './types';
 
+export type RagStatus = 'unconfigured' | 'empty' | 'error' | 'hits';
+
+export interface RagContextResult {
+  context: string;
+  status: RagStatus;
+  hitCount: number;
+}
+
 /**
  * Search knowledge base using semantic similarity
  */
@@ -65,26 +73,56 @@ export function buildRagContext(results: SearchResult[]): string {
 }
 
 /**
- * Get relevant context for a user query
+ * Get relevant context for a user query, with explicit status for the model.
  */
 export async function getRelevantContext(
   query: string,
-  userId?: string
-): Promise<string> {
+  userId?: string,
+  options: {
+    threshold?: number;
+    limit?: number;
+  } = {}
+): Promise<RagContextResult> {
   // Skip RAG if Supabase isn't configured
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return '';
+    return { context: '', status: 'unconfigured', hitCount: 0 };
   }
+
+  const threshold = options.threshold ?? 0.65;
+  const limit = options.limit ?? 5;
 
   try {
     const results = await searchKnowledge(query, userId, {
-      threshold: 0.72,
-      limit: 3,
+      threshold,
+      limit,
     });
 
-    return buildRagContext(results);
+    if (results.length === 0) {
+      return { context: '', status: 'empty', hitCount: 0 };
+    }
+
+    return {
+      context: buildRagContext(results),
+      status: 'hits',
+      hitCount: results.length,
+    };
   } catch (error) {
     console.error('Error getting RAG context:', error);
-    return '';
+    return { context: '', status: 'error', hitCount: 0 };
+  }
+}
+
+export function formatRagStatusLine(result: RagContextResult): string {
+  switch (result.status) {
+    case 'hits':
+      return `RAG status: hits=${result.hitCount}`;
+    case 'empty':
+      return 'RAG status: empty (no sufficiently similar knowledge chunks)';
+    case 'unconfigured':
+      return 'RAG status: unconfigured (knowledge base not available in this environment)';
+    case 'error':
+      return 'RAG status: error (knowledge retrieval failed; do not invent knowledge hits)';
+    default:
+      return 'RAG status: unknown';
   }
 }
