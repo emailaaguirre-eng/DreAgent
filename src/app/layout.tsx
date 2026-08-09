@@ -23,7 +23,7 @@ export default function RootLayout({
         
         {/* Footer branding */}
         <footer className="fixed bottom-0 left-0 right-0 py-2 text-center text-xs text-text-muted pointer-events-none">
-          Powered by CoDre-X™ © 2026 B&D Servicing LLC
+          Powered by CoDre-X | B&D Servicing LLC
         </footer>
       </body>
     </html>

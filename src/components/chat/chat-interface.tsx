@@ -11,40 +11,29 @@ import { Send, Sparkles, RotateCcw, FileDown } from 'lucide-react';
 import { ModeSelector } from './mode-selector';
 import { MessageBubble, TypingIndicator } from './message-bubble';
 import { VoiceInput } from './voice-input';
-import { type AgentMode } from '@/lib/ai/prompts';
+import { normalizeToVisibleMode, type AgentMode } from '@/lib/ai/prompts';
 import { cn } from '@/lib/utils';
 
 const MODE_STORAGE_KEY = 'dreagent_last_mode';
 const USER_STORAGE_KEY = 'dreagent_user_id';
 
-const MODE_CAPABILITIES: Record<AgentMode, string[]> = {
+const MODE_CAPABILITIES: Partial<Record<AgentMode, string[]>> = {
   general: [
-    'General Q&A and triage',
-    'No live mail provider (switch to Lea Executive)',
+    'Incentives & economic development',
+    'General triage',
+    'No live mail provider (switch to Lea)',
   ],
   'it-support': ['Debugging', 'Code review', 'Cloud & sysadmin'],
   executive: [
-    'Mail/calendar when a provider is connected',
-    'Email & calendar drafts (send/create not enabled)',
-    'CSV export if provider configured',
+    'Executive support',
+    'Mail/calendar when connected',
+    'Drafts only',
+    'Research',
+    'Legal/finance organization',
+    'Incentives',
+    'Wellness planned',
   ],
-  legal: ['Contract review', 'Legal research (not legal advice)'],
-  finance: ['Analysis frameworks', 'Tax concepts (not CPA advice)'],
-  research: ['Deep explanations', 'Comparisons'],
-  incentives: ['Program checklists', 'Eligibility framing'],
 };
-
-function isAgentMode(value: string | null): value is AgentMode {
-  return (
-    value === 'general' ||
-    value === 'it-support' ||
-    value === 'executive' ||
-    value === 'legal' ||
-    value === 'finance' ||
-    value === 'research' ||
-    value === 'incentives'
-  );
-}
 
 export function ChatInterface() {
   const [mode, setMode] = useState<AgentMode>('executive');
@@ -66,18 +55,16 @@ export function ChatInterface() {
     }
 
     const storedMode = window.localStorage.getItem(MODE_STORAGE_KEY);
-    if (isAgentMode(storedMode)) {
-      setMode(storedMode);
-    } else {
-      setMode('executive');
-      window.localStorage.setItem(MODE_STORAGE_KEY, 'executive');
-    }
+    const next = normalizeToVisibleMode(storedMode);
+    setMode(next);
+    window.localStorage.setItem(MODE_STORAGE_KEY, next);
   }, []);
 
   const handleModeChange = useCallback((next: AgentMode) => {
-    setMode(next);
+    const resolved = normalizeToVisibleMode(next);
+    setMode(resolved);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(MODE_STORAGE_KEY, next);
+      window.localStorage.setItem(MODE_STORAGE_KEY, resolved);
     }
   }, []);
 
@@ -211,14 +198,16 @@ export function ChatInterface() {
           <ModeSelector currentMode={mode} onModeChange={handleModeChange} />
 
           <div className="mt-3 flex flex-wrap gap-2 justify-center">
-            {MODE_CAPABILITIES[mode].map((cap) => (
-              <span
-                key={cap}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-700 text-text-secondary border border-white/15"
-              >
-                {cap}
-              </span>
-            ))}
+            {(MODE_CAPABILITIES[mode] ?? MODE_CAPABILITIES.executive ?? []).map(
+              (cap) => (
+                <span
+                  key={cap}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-700 text-text-secondary border border-white/15"
+                >
+                  {cap}
+                </span>
+              )
+            )}
           </div>
         </div>
       </header>
@@ -377,21 +366,20 @@ function EmptyState({
   mode: AgentMode;
   onSuggest: (text: string) => void;
 }) {
-  const assistantNameByMode: Record<AgentMode, string> = {
-    general: 'Grant',
-    'it-support': 'Chiquis',
-    executive: 'Lea Executive',
-    legal: 'Lea Legal',
-    finance: 'Lea Finance',
-    research: 'Lea Research',
-    incentives: 'Lea Incentives',
+  const introByMode: Partial<Record<AgentMode, string>> = {
+    general:
+      "I'm Grant, optional incentives and economic-development specialist. Switch to Lea for day-to-day executive help, or Chiquis for coding/IT.",
+    'it-support':
+      "I'm Chiquis, optional IT and coding specialist. Switch to Lea for planning, drafting, and mail/calendar support.",
+    executive:
+      "I'm Lea, your executive assistant. I can help with planning, drafting, research, organization, and connected mail/calendar when available.",
   };
 
-  const suggestions: Record<AgentMode, string[]> = {
+  const suggestions: Partial<Record<AgentMode, string[]>> = {
     general: [
-      'What can you help me with?',
-      'Help me prioritize my work today',
-      'When should I switch to Lea Executive?',
+      'What incentive programs should I review?',
+      'Help me frame an economic development checklist',
+      'When should I switch to Lea?',
     ],
     'it-support': [
       'Debug this Python error...',
@@ -402,29 +390,16 @@ function EmptyState({
       'Check my inbox for the last 7 days',
       'What meetings do I have this week?',
       'Draft a follow-up email to the client about next steps',
+      'Summarize this topic clearly for a briefing',
+      'Help me organize the open items in this contract',
       'Export my email history as CSV',
     ],
-    legal: [
-      'Explain this contract clause',
-      'What are the key terms in an NDA?',
-      'Draft a cease and desist template',
-    ],
-    finance: [
-      'Explain the tax implications of...',
-      'Help me analyze this balance sheet',
-      'What deductions can I claim for my home office?',
-    ],
-    research: [
-      'Explain quantum computing in simple terms',
-      'What are the latest trends in AI?',
-      'Compare React vs Vue for my project',
-    ],
-    incentives: [
-      'What are the requirements for the R&D tax credit?',
-      'Help me complete this incentive application',
-      'What documentation do I need for WOTC?',
-    ],
   };
+
+  const modeSuggestions =
+    suggestions[mode] ?? suggestions.executive ?? [];
+  const intro =
+    introByMode[mode] ?? introByMode.executive ?? 'How can I help?';
 
   return (
     <motion.div
@@ -446,13 +421,12 @@ function EmptyState({
       <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
         How can I help you today?
       </h2>
-      <p className="text-text-secondary mb-8 max-w-md leading-relaxed">
-        I&apos;m {assistantNameByMode[mode]}, your AI assistant. Ask me anything
-        or try one of these suggestions:
+      <p className="text-text-secondary mb-8 max-w-lg leading-relaxed">
+        {intro} Try one of these suggestions:
       </p>
 
       <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-        {suggestions[mode].map((suggestion, i) => (
+        {modeSuggestions.map((suggestion, i) => (
           <motion.button
             key={i}
             type="button"

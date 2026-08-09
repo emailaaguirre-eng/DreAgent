@@ -26,9 +26,11 @@ function section(name: string) {
 
 section('Mode matrix');
 assert.equal(MODES.general.name, 'Grant');
-assert.equal(MODES.executive.name, 'Lea Executive');
+assert.equal(MODES.executive.name, 'Lea');
 assert.equal(MODES.executive.model, 'gpt-4o');
 assert.equal(MODES['it-support'].name, 'Chiquis');
+// Specialty modes remain configured server-side but are not separate product agents in UI.
+assert.ok(MODES.legal && MODES.finance && MODES.research && MODES.incentives);
 assert.ok(
   MODES.general.systemPrompt.includes('do not have a connected email provider') ||
     MODES.general.systemPrompt.toLowerCase().includes('connected email'),
@@ -36,20 +38,37 @@ assert.ok(
 );
 assert.ok(
   MODES.executive.systemPrompt.includes('Gmail support is planned'),
-  'Lea Executive should note Gmail is planned, not live'
+  'Lea should note Gmail is planned, not live'
 );
 assert.ok(
   MODES.executive.systemPrompt.includes('Outlook is currently supported'),
-  'Lea Executive should note Outlook as optional/current provider'
+  'Lea should note Outlook as optional/current provider'
 );
 assert.ok(
   MODES.executive.systemPrompt.includes('Email draft'),
-  'Lea Executive should document draft format'
+  'Lea should document draft format'
 );
 assert.ok(
   MODES.executive.systemPrompt.includes('sending is not enabled') ||
     MODES.executive.systemPrompt.includes('not enabled in Smart LEA v1'),
-  'Lea Executive should state send/create not enabled'
+  'Lea should state send/create not enabled'
+);
+assert.ok(
+  MODES.executive.systemPrompt.includes('one assistant') ||
+    MODES.executive.systemPrompt.includes('Introduce yourself simply as Lea'),
+  'Lea should present as a single assistant'
+);
+
+section('Visible product agents');
+const ui = readFileSync(join(__dirname, '../src/components/chat/mode-selector.tsx'), 'utf8');
+assert.ok(ui.includes('VISIBLE_AGENT_MODES'), 'Mode selector uses visible agent list');
+assert.ok(!ui.includes('Object.values(MODES)'), 'Mode selector no longer lists all MODES');
+const chatUi = readFileSync(join(__dirname, '../src/components/chat/chat-interface.tsx'), 'utf8');
+assert.ok(chatUi.includes('normalizeToVisibleMode'), 'Chat normalizes specialty modes to Lea');
+assert.ok(
+  chatUi.includes("I'm Lea, your executive assistant") ||
+    chatUi.includes('I can help with planning, drafting, research'),
+  'Lea empty-state identity copy present'
 );
 
 section('Executive intent routing');
@@ -104,10 +123,6 @@ assert.ok(
 );
 
 section('Chat UI must not wire conversation persistence in v1');
-const chatUi = readFileSync(
-  join(__dirname, '../src/components/chat/chat-interface.tsx'),
-  'utf8'
-);
 assert.equal(
   /\/api\/conversations/.test(chatUi),
   false,
