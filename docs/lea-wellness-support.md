@@ -1,61 +1,71 @@
-# LEA Wellness / Health Journey Support (deferred)
+# LEA Wellness / Health Journey Support (earlier roadmap note)
 
-**Status:** Roadmap only — **not implemented** in Smart LEA v1.  
-**Suggested future branch:** `feat/lea-wellness-support`  
-**Relationship to email work:** Separate capability area. Do **not** couple wellness to mail/calendar providers.
+**Status:** Lightweight roadmap history — **superseded for implementation** by  
+[`docs/lea-health-weight-journey.md`](lea-health-weight-journey.md)  
+(LEA Health / Weight Journey blueprint for **Next.js / TypeScript DreAgent**, Phase A foundation focus).
+
+**Do not implement** from this file alone. Use the blueprint doc for architecture, privacy, Phase A scope, and branch plan.
+
+**Relationship to email / Smart LEA v1:** Separate capability area. Do **not** couple wellness/health work to mail/calendar providers, Graph writes, Gmail/IMAP/SMTP, or conversation persistence.
 
 ---
 
-## Purpose
+## Purpose (historical)
 
-LEA should eventually help Dre with a healthy journey to lose weight and eat better—executive-style planning, tracking, reminders, and accountability—not medical care.
+LEA should help with a healthy weight and nutrition journey—planning, tracking support, accountability, and sustainable habits—not medical care.
 
-## Known user context (for future personalization design)
+## Planning context (non-clinical; design only)
 
-- Goal: significant healthy weight loss (~100 lbs total; ~180 lbs as a satisfying milestone).
-- Prior stats shared for planning context: about 255 lbs, 5'6", age 50, female; mostly sedentary with treadmill walks about 4–5 times per week.
-- Preferences: sustainable dietary change, health-conscious calorie tracking, progress trendlines, support as weight changes.
+High-level goals discussed for personalization design (store in **private, user-scoped** profile at implementation—not as the only source of truth in public code):
 
-This context must **never** be hard-coded as clinical diagnosis data. Future implementation should use opt-in profile/preferences with clear consent.
+- Significant healthy weight loss over time (~100 lb class goal from a high start weight).
+- **~180 lb** as an important satisfying **major milestone**.
+- **~155 lb** as a later/stretch goal for some users.
+- Mostly sedentary lifestyle with regular short treadmill walks.
+- Sustainable eating change and calorie awareness without shame.
 
-## Capabilities (future)
+This context must **never** be treated as hard-coded clinical diagnosis data. Implementation uses opt-in private profile fields with consent.
 
-LEA Wellness should help with:
+## Capabilities (still future; see blueprint)
 
-- Meal planning and healthier swaps
-- Grocery planning
-- Calorie and protein tracking support
-- Weekly progress summaries
-- Walking/activity reminders
-- Habit tracking
-- Water / fiber / protein nudges
-- Spotting patterns from logs
-- Encouraging consistency **without shame**
-- Helping prepare questions for a doctor or dietitian when appropriate
+- Meal planning and realistic food fits  
+- Grocery planning  
+- Calorie and activity tracking support  
+- Weekly progress summaries  
+- Walking/activity habits  
+- Pattern spotting from logs  
+- Consistency without shame  
+- Questions to prepare for a clinician when appropriate  
 
-## Health guardrails (required)
+Full phased plan: **[`docs/lea-health-weight-journey.md`](lea-health-weight-journey.md)**.
 
-- LEA is **not** a doctor and must not present as one.
-- No dangerous crash-diet or extreme restriction advice.
-- Prefer safe, sustainable weight-loss pacing; recommend medical guidance for extreme calorie restriction, medical conditions, medication questions, dizziness, fainting, chest pain, disordered eating signs, or rapid unexplained weight changes.
-- Avoid shame-based language.
-- Treat wellness as **executive support**: planning, tracking, reminders, accountability, organization.
+## Health guardrails (still required)
 
-## Architecture note
+- LEA is **not** a doctor and must not present as one.  
+- No crash diets or extreme restriction recommendations.  
+- Prefer sustainable pace; surface medical follow-up for concerning symptoms or aggressive restriction requests.  
+- No shame language.  
+- Treat health as executive-style support: plan, track, remind, organize.  
 
-Implement as its own module/capability (e.g. mode, tools, or package under `src/lib/wellness/`), independent of:
+## Architecture note (updated)
 
-- Multi-provider email (Outlook / Gmail)
-- Calendar providers
-- Incentives / Grant research
+Implement under DreAgent patterns (e.g. future `src/lib/health/*`), independent of:
 
-Share only generic LEA patterns (truthfulness, structure, mild persistence once ownership is fixed).
+- Multi-provider email (Outlook / Gmail)  
+- Calendar write actions from chat  
+- Incentives / Grant specialty research tools  
 
-## Suggested implementation phases (later)
+Share only generic LEA patterns (truthfulness, structured context, user-scoped storage once designed safely).
 
-1. Docs + safety prompt addendum for wellness conversations only  
-2. Optional structured log capture (meals, weight, activity) with privacy review  
+## Earlier suggested steps (replaced by phased blueprint)
+
+1. Docs + safety (this note → now **blueprint** docs)  
+2. Optional structured log capture with privacy review  
 3. Weekly summary + gentle nudges  
-4. Doctor/dietitian question prep templates  
+4. Clinician question prep templates  
 
-**Do not start coding wellness until a dedicated branch is approved.**
+**Implementation order:** follow **`docs/lea-health-weight-journey.md`** Phase A → B → …, not this list.
+
+---
+
+*Planning branch for the blueprint: `feat/lea-health-weight-journey-plan`.*
