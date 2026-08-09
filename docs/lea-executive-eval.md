@@ -27,4 +27,5 @@ Manual product-path checks:
 
 Deferred roadmap (docs only, not in product yet):
 - Multi-provider email (Gmail OAuth)—see architecture notes in conversation history
-- [`docs/lea-wellness-support.md`](lea-wellness-support.md) — LEA Wellness / Health Journey Support
+- [`docs/lea-health-weight-journey.md`](lea-health-weight-journey.md) — LEA Health / Weight Journey (Next.js DreAgent blueprint; Phase A foundation planned)
+- [`docs/lea-wellness-support.md`](lea-wellness-support.md) — earlier light wellness roadmap (**superseded** for implementation by the health blueprint)
