@@ -190,7 +190,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-screen max-h-screen">
-      <header className="flex-shrink-0 px-4 py-4 border-b border-white/5">
+      <header className="flex-shrink-0 px-4 py-4 border-b border-white/10">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
             <motion.div
@@ -201,10 +201,10 @@ export function ChatInterface() {
               <Sparkles className="w-5 h-5 text-white" />
             </motion.div>
             <div>
-              <h1 className="text-xl font-semibold text-text-primary">
+              <h1 className="text-xl font-semibold text-text-primary tracking-tight">
                 DreAgent
               </h1>
-              <p className="text-xs text-text-muted">Powered by CoDre-X™</p>
+              <p className="text-xs text-text-secondary">Powered by CoDre-X™</p>
             </div>
           </div>
 
@@ -214,7 +214,7 @@ export function ChatInterface() {
             {MODE_CAPABILITIES[mode].map((cap) => (
               <span
                 key={cap}
-                className="px-2.5 py-1 rounded-full text-[11px] bg-surface-700/40 text-text-secondary border border-white/5"
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-700 text-text-secondary border border-white/15"
               >
                 {cap}
               </span>
@@ -251,7 +251,7 @@ export function ChatInterface() {
         </div>
       </main>
 
-      <footer className="flex-shrink-0 px-4 py-4 border-t border-white/5 bg-surface-900/50 backdrop-blur">
+      <footer className="flex-shrink-0 px-4 py-3 pb-8 border-t border-white/10 bg-surface-800/80 backdrop-blur-sm">
         <form ref={formRef} onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           <div className="flex items-end gap-3">
             <VoiceInput
@@ -274,7 +274,7 @@ export function ChatInterface() {
                 disabled={isLoading}
                 className={cn(
                   'w-full px-4 py-3 pr-12 rounded-2xl resize-none',
-                  'bg-surface-700/50 border border-white/10',
+                  'bg-surface-700 border border-white/15',
                   'text-text-primary placeholder:text-text-muted',
                   'focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -307,8 +307,8 @@ export function ChatInterface() {
                 disabled={isLoading}
                 className={cn(
                   'p-3 rounded-full transition-all duration-200',
-                  'bg-surface-700 text-text-secondary',
-                  'hover:bg-surface-700/80 hover:text-text-primary',
+                  'bg-surface-700 text-text-secondary border border-white/15',
+                  'hover:bg-surface-700/90 hover:text-text-primary',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
                 whileHover={{ scale: 1.05 }}
@@ -319,7 +319,7 @@ export function ChatInterface() {
             )}
           </div>
 
-          <p className="text-center text-xs text-text-muted mt-2">
+          <p className="text-center text-xs text-text-secondary mt-2">
             Press Enter to send • Shift+Enter for new line
           </p>
 
@@ -331,8 +331,8 @@ export function ChatInterface() {
                 disabled={isDownloadingReport}
                 className={cn(
                   'px-3 py-2 rounded-lg text-xs font-medium',
-                  'bg-surface-700/70 text-text-secondary border border-white/10',
-                  'hover:bg-surface-700 hover:text-text-primary',
+                  'bg-surface-700 text-text-secondary border border-white/15',
+                  'hover:bg-surface-700/90 hover:text-text-primary hover:border-white/25',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                   'inline-flex items-center gap-1.5 transition-colors duration-200'
                 )}
@@ -347,8 +347,8 @@ export function ChatInterface() {
                 disabled={isDownloadingReport}
                 className={cn(
                   'px-3 py-2 rounded-lg text-xs font-medium',
-                  'bg-surface-700/70 text-text-secondary border border-white/10',
-                  'hover:bg-surface-700 hover:text-text-primary',
+                  'bg-surface-700 text-text-secondary border border-white/15',
+                  'hover:bg-surface-700/90 hover:text-text-primary hover:border-white/25',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                   'inline-flex items-center gap-1.5 transition-colors duration-200'
                 )}
@@ -360,7 +360,7 @@ export function ChatInterface() {
           )}
 
           {downloadStatus && (
-            <p className="text-center text-xs text-text-muted mt-2">
+            <p className="text-center text-xs text-text-secondary mt-2">
               {downloadStatus}
             </p>
           )}
@@ -443,10 +443,10 @@ function EmptyState({
         <Sparkles className="w-10 h-10 text-white" />
       </motion.div>
 
-      <h2 className="text-2xl font-semibold text-text-primary mb-2">
+      <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
         How can I help you today?
       </h2>
-      <p className="text-text-secondary mb-8 max-w-md">
+      <p className="text-text-secondary mb-8 max-w-md leading-relaxed">
         I&apos;m {assistantNameByMode[mode]}, your AI assistant. Ask me anything
         or try one of these suggestions:
       </p>
@@ -461,10 +461,10 @@ function EmptyState({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              'px-4 py-2 rounded-full text-sm',
-              'bg-surface-700/50 text-text-secondary',
-              'hover:bg-surface-700 hover:text-text-primary',
-              'border border-white/5 transition-all duration-200'
+              'px-4 py-2 rounded-full text-sm font-medium',
+              'bg-surface-700 text-text-primary',
+              'hover:bg-surface-700/90 hover:border-brand-400/40',
+              'border border-white/15 transition-all duration-200'
             )}
           >
             {suggestion}

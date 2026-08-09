@@ -22,7 +22,7 @@ export default function RootLayout({
         {children}
         
         {/* Footer branding */}
-        <footer className="fixed bottom-0 left-0 right-0 py-2 text-center text-xs text-text-muted/50 pointer-events-none">
+        <footer className="fixed bottom-0 left-0 right-0 py-2 text-center text-xs text-text-muted pointer-events-none">
           Powered by CoDre-X™ © 2026 B&D Servicing LLC
         </footer>
       </body>

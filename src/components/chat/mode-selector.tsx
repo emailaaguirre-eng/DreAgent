@@ -24,10 +24,10 @@ export function ModeSelector({ currentMode, onModeChange }: ModeSelectorProps) {
           onClick={() => onModeChange(mode.id)}
           className={cn(
             'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
-            'flex items-center gap-2',
+            'flex items-center gap-2 border',
             currentMode === mode.id
-              ? 'bg-brand-500 text-white shadow-lg'
-              : 'bg-surface-700/50 text-text-secondary hover:bg-surface-700 hover:text-text-primary'
+              ? 'bg-brand-500 text-white border-brand-400/40 shadow-lg'
+              : 'bg-surface-700 text-text-primary border-white/15 hover:bg-surface-700/90 hover:border-white/25 hover:text-text-primary'
           )}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -37,7 +37,14 @@ export function ModeSelector({ currentMode, onModeChange }: ModeSelectorProps) {
               : {}
           }
         >
-          <span className="text-white">{mode.icon}</span>
+          <span
+            className={
+              currentMode === mode.id ? 'text-white' : 'text-text-secondary'
+            }
+            aria-hidden
+          >
+            {mode.icon}
+          </span>
           <span className="hidden sm:inline">{mode.name}</span>
         </motion.button>
       ))}

@@ -22,10 +22,10 @@
   --surface-elevated: #111827;
   --surface-card: #1a2332;
   
-  /* Text */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  /* Text — WCAG-friendlier pairings on dark surfaces */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 }
 
 * {
@@ -34,15 +34,25 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
+  background-color: var(--surface-base);
 }
 
 body {
   font-family: var(--font-outfit);
-  background: var(--surface-base);
+  background-color: var(--surface-base);
+  background-image: none;
   color: var(--text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Readable form control placeholders (input, textarea) */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 /* Custom scrollbar */
@@ -64,9 +74,10 @@ body {
   background: rgba(148, 163, 184, 0.4);
 }
 
-/* Animated gradient background */
+/* Animated gradient background — keeps a solid dark base under the gradient */
 .gradient-bg {
-  background: linear-gradient(
+  background-color: var(--surface-base);
+  background-image: linear-gradient(
     135deg,
     var(--surface-base) 0%,
     #0f1729 25%,
@@ -181,18 +192,21 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s;
-  background: rgba(30, 41, 59, 0.5);
-  color: var(--text-secondary);
+  background: #1e293b;
+  color: var(--text-primary);
+  border: 1px solid rgba(203, 213, 225, 0.18);
 }
 
 .mode-pill:hover {
-  background: #1e293b;
+  background: #334155;
   color: var(--text-primary);
+  border-color: rgba(203, 213, 225, 0.28);
 }
 
 .mode-pill.active {
   background: var(--brand-primary);
   color: white;
+  border-color: transparent;
   box-shadow: 0 4px 15px rgba(205, 111, 77, 0.3);
 }
 
