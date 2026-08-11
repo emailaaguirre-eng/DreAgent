@@ -3,17 +3,21 @@
 // Powered by CoDre-X™
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  ownerAuthErrorResponse,
+  requireTrustedOwner,
+} from '@/lib/auth/owner-session';
 import { searchKnowledge } from '@/lib/rag/query';
 
 export const runtime = 'nodejs';
 
-// POST - Semantic search
+// POST - Semantic search scoped to trusted owner only
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
       query,
-      userId,
+      userId: clientUserId,
       threshold,
       limit,
     } = body as {
@@ -30,7 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const results = await searchKnowledge(query, userId, {
+    const trusted = requireTrustedOwner(req, {
+      untrustedClientUserId: clientUserId,
+    });
+    if (!trusted.ok) {
+      return ownerAuthErrorResponse(trusted);
+    }
+
+    const results = await searchKnowledge(query, trusted.ownerId, {
       threshold: threshold || 0.7,
       limit: limit || 5,
     });
@@ -39,6 +50,8 @@ export async function POST(req: NextRequest) {
       query,
       results,
       count: results.length,
+      ownerId: trusted.ownerId,
+      identitySource: trusted.source,
     });
   } catch (error) {
     console.error('Knowledge search error:', error);

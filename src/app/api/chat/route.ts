@@ -23,6 +23,7 @@ import {
   getEmails,
   type Email,
 } from '@/lib/outlook/client';
+import { resolveTrustedOwnerId } from '@/lib/auth/owner-session';
 import { resolveOutlookAccessToken } from '@/lib/outlook/tokens';
 import {
   webSearch,
@@ -177,7 +178,7 @@ Do not claim a calendar event was created. Offer to refine the event draft inste
 Action status: failed
 Provider note: Outlook is currently supported if configured; Gmail support is planned and not implemented yet.
 User-facing: do not invent inbox/calendar contents. Stay useful with planning and drafts from user text or pasted messages. Explain that live access needs a connected email provider (and calendar provider when relevant).
-Legacy connect path if Outlook is already set up for this deployment: /api/outlook/auth?userId=<your-user-id>`;
+Legacy connect path if Outlook is already set up for this deployment: establish an owner session (POST /api/auth/owner-session), then open /api/outlook/auth (client userId is not trusted).`;
   }
 
   const params = parseExecutiveParams(lastUserMessage);
@@ -284,7 +285,6 @@ ${sampleText}`;
       days_behind: String(params.daysBehind),
       days_ahead: String(params.daysAhead),
     });
-    if (userId) exportParams.set('userId', userId);
     if (params.startDate) exportParams.set('start_date', params.startDate);
     if (params.endDate) exportParams.set('end_date', params.endDate);
 
@@ -294,7 +294,7 @@ Provider: outlook (legacy convenience if configured)
 Records to export now: ${emails.length} emails${params.includeCalendar ? `, ${calendarCount} calendar events` : ''}
 Export endpoint: /api/outlook/email-history?${exportParams.toString()}
 UI: Lea Executive footer buttons "Download Email CSV" / "Download Email + Calendar CSV" use folder=inbox, limit=200, days_behind=30 (email+calendar path days_ahead=30).
-Note: Use the same authenticated session or provide Authorization: Bearer <access_token> when downloading. Gmail export is not implemented yet.`;
+Note: Use the trusted owner session cookie (or Authorization: Bearer <access_token>) when downloading — client userId query params are not authoritative. Gmail export is not implemented yet.`;
   }
 
   return '';
@@ -306,13 +306,14 @@ export async function POST(req: NextRequest) {
     const {
       messages,
       mode = 'executive',
-      userId,
+      userId: clientUserId,
       enableRag = true,
       enableWebSearch = true,
       outlookAccessToken,
     } = body as {
       messages: { role: 'user' | 'assistant'; content: string }[];
       mode?: AgentMode;
+      /** @deprecated Untrusted client claim; not used as owner identity */
       userId?: string;
       enableRag?: boolean;
       enableWebSearch?: boolean;
@@ -325,6 +326,13 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // Client body/header userId is never authoritative for RAG or mail scoping.
+    const trustedOwner = resolveTrustedOwnerId(req, {
+      untrustedClientUserId: clientUserId,
+    });
+    // Only use owner id when session is valid; ignore forged client ids entirely.
+    const ownerId = trustedOwner.ok ? trustedOwner.ownerId : undefined;
 
     const lastUserMessage = getLastUserMessage(messages);
     const recentAssistant = findLastAssistantContent(messages);
@@ -343,14 +351,18 @@ export async function POST(req: NextRequest) {
 
     let ragContext = '';
     let ragStatusBlock = '';
-    if (enableRag && lastUserMessage) {
+    // Fail closed for personal knowledge: no unscoped RAG without owner session.
+    if (enableRag && lastUserMessage && ownerId) {
       const ragOpts =
         mode === 'executive'
           ? { threshold: 0.65, limit: 5 }
           : { threshold: 0.72, limit: 3 };
-      const rag = await getRelevantContext(lastUserMessage, userId, ragOpts);
+      const rag = await getRelevantContext(lastUserMessage, ownerId, ragOpts);
       ragContext = rag.context;
       ragStatusBlock = formatRagStatusLine(rag);
+    } else if (enableRag && lastUserMessage && !ownerId) {
+      ragStatusBlock =
+        'status=skipped reason=owner_session_required (client userId is not trusted for knowledge access)';
     }
 
     let webContext = '';
@@ -374,7 +386,7 @@ export async function POST(req: NextRequest) {
         req,
         executiveIntent,
         lastUserMessage,
-        userId,
+        ownerId,
         outlookAccessToken
       );
     } else if (mode === 'executive' && lastUserMessage && executiveIntent !== 'none' && ambiguityPrompt) {
@@ -389,7 +401,7 @@ export async function POST(req: NextRequest) {
           req,
           executiveIntent,
           lastUserMessage,
-          userId,
+          ownerId,
           outlookAccessToken
         );
       }

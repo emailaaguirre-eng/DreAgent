@@ -16,13 +16,16 @@ function csvEscape(value: string | number | boolean): string {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId') || undefined;
-    const resolved = await resolveOutlookAccessToken({ req, userId });
+    // Client userId query is never trusted for token lookup.
+    const resolved = await resolveOutlookAccessToken({ req });
     const accessToken = resolved.accessToken;
     if (!accessToken) {
       return NextResponse.json(
         {
-          error: 'Outlook not connected. Provide Bearer token or connect via /api/outlook/auth?userId=...',
+          error:
+            'Outlook not connected. Provide Bearer token or establish owner session and connect via /api/outlook/auth. Client userId is not trusted.',
+          identitySource: resolved.identitySource,
+          identityReason: resolved.identityReason,
         },
         { status: 401 }
       );
@@ -116,7 +119,7 @@ export async function GET(req: NextRequest) {
           error: error.message,
           hint:
             error.status === 401
-              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth?userId=...'
+              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth with an owner session.'
               : undefined,
         },
         { status: error.status }

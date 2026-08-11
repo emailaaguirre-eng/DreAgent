@@ -3,25 +3,29 @@
 // Powered by CoDre-X™
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  ownerAuthErrorResponse,
+  requireTrustedOwner,
+} from '@/lib/auth/owner-session';
 import { ingestDocument, listDocuments, deleteDocument } from '@/lib/rag/ingest';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// GET - List documents
+// GET - List documents (owner session required; client userId not trusted)
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get('x-user-id');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId required' },
-        { status: 400 }
-      );
+    const trusted = requireTrustedOwner(req);
+    if (!trusted.ok) {
+      return ownerAuthErrorResponse(trusted);
     }
 
-    const documents = await listDocuments(userId);
-    return NextResponse.json({ documents });
+    const documents = await listDocuments(trusted.ownerId);
+    return NextResponse.json({
+      documents,
+      ownerId: trusted.ownerId,
+      identitySource: trusted.source,
+    });
   } catch (error) {
     console.error('Knowledge GET error:', error);
     return NextResponse.json(
@@ -31,30 +35,42 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Ingest document
+// POST - Ingest document (bound to trusted owner only)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      userId,
+      userId: clientUserId,
       title,
       content,
       metadata,
     } = body as {
-      userId: string;
+      userId?: string;
       title: string;
       content: string;
       metadata?: Record<string, unknown>;
     };
 
-    if (!userId || !title || !content) {
+    const trusted = requireTrustedOwner(req, {
+      untrustedClientUserId: clientUserId,
+    });
+    if (!trusted.ok) {
+      return ownerAuthErrorResponse(trusted);
+    }
+
+    if (!title || !content) {
       return NextResponse.json(
-        { error: 'userId, title, and content required' },
+        { error: 'title and content required' },
         { status: 400 }
       );
     }
 
-    const result = await ingestDocument(userId, title, content, metadata);
+    const result = await ingestDocument(
+      trusted.ownerId,
+      title,
+      content,
+      metadata
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -67,6 +83,8 @@ export async function POST(req: NextRequest) {
       status: 'ingested',
       documentId: result.documentId,
       chunksCreated: result.chunksCreated,
+      ownerId: trusted.ownerId,
+      identitySource: trusted.source,
     });
   } catch (error) {
     console.error('Knowledge POST error:', error);
@@ -77,9 +95,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE - Remove document
+// DELETE - Remove document (owner session required)
 export async function DELETE(req: NextRequest) {
   try {
+    const trusted = requireTrustedOwner(req);
+    if (!trusted.ok) {
+      return ownerAuthErrorResponse(trusted);
+    }
+
     const body = await req.json();
     const { documentId } = body as { documentId: string };
 
@@ -91,7 +114,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     await deleteDocument(documentId);
-    return NextResponse.json({ status: 'deleted' });
+    return NextResponse.json({
+      status: 'deleted',
+      ownerId: trusted.ownerId,
+      identitySource: trusted.source,
+    });
   } catch (error) {
     console.error('Knowledge DELETE error:', error);
     return NextResponse.json(

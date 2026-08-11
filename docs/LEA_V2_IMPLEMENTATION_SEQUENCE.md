@@ -1,27 +1,25 @@
 # LEA v2 Implementation Sequence
 
-Ordering for **coding branches after** the docs/planning foundation branch. Product milestones: [LEA_V2_FOUNDATION_PLAN.md](./LEA_V2_FOUNDATION_PLAN.md). Source of truth: [LEA_V2_SOURCE_OF_TRUTH.md](./LEA_V2_SOURCE_OF_TRUTH.md).
+Ordering for coding branches after foundation docs. Product milestones: [LEA_V2_FOUNDATION_PLAN.md](./LEA_V2_FOUNDATION_PLAN.md). Source of truth: [LEA_V2_SOURCE_OF_TRUTH.md](./LEA_V2_SOURCE_OF_TRUTH.md). Auth design: [LEA_AUTH_SESSION.md](./LEA_AUTH_SESSION.md).
 
-## Current branch (docs only)
+## Branches
 
-| Branch | Scope |
-| --- | --- |
-| `feature/lea-v2-foundation-hardening` | Planning docs only — no application code, no deploy, no env edits |
+| Branch | Scope | Status |
+| --- | --- | --- |
+| `feature/lea-v2-foundation-hardening` | Planning docs only | Merged to main as foundation path docs |
+| `feature/lea-auth-and-owner-session` | **M1** single-owner session gate; stop trusting client `userId` | **Active coding branch** |
 
-## Recommended first real coding branch
+## M1 coding branch (current)
 
-### 1. `feature/lea-auth-and-owner-session` (M1 first)
+### `feature/lea-auth-and-owner-session`
 
-**Do this first.** Without owner session, every other feature inherits R1 (weak client identity).
-
-Suggested focus:
-
-- Server-authoritative session / auth hardening
-- Owner binding for LEA executive and memory paths
-- Remove or demote sole reliance on client `userId` / localStorage identity
-- Tests proving unauthenticated and cross-user access fail closed
-
-Prompt must still declare target repo/path/branch and **Deployment allowed: no** unless staging is intentionally in scope.
+- Server-authoritative owner session (`lea_owner_session` HTTP-only cookie)
+- Bootstrap via `POST /api/auth/owner-session` (shared secret; not multi-user login UI)
+- Knowledge, conversations, and Outlook DB-token paths fail closed without trusted owner
+- Client `localStorage` / body / `x-user-id` are not authoritative
+- Chat drafting still works without session; personal RAG/mail storage requires session
+- Offline checks for owner-session helper and untrusted client userId
+- **No deploy** in this branch
 
 ## Then
 
@@ -42,7 +40,7 @@ After abstraction exists:
 - No send/write expansion in this branch unless re-scoped with M4 approval gates
 - Secrets remain out of repo; config via env on authorized environments only
 
-## Later branches (indicative, not started here)
+## Later branches (indicative)
 
 | Branch (suggested name) | Milestone |
 | --- | --- |
@@ -54,17 +52,11 @@ After abstraction exists:
 | Ops-only, explicit permissions | M9 staging |
 | Decision record + ops, explicit permissions | M10 cutover |
 
-Parallelism is possible after M1 for docs-heavy modules (e.g. health plan), but **ship order for platform risk is M1 → M2 → M3** on the branches above.
+**Ship order for platform risk remains M1 → M2 → M3.**
 
 ## Guardrails for every coding branch
 
 1. Target DreAgent only unless the prompt overrides with another **named** repo/path.
 2. Never deploy unless the prompt sets **Deployment allowed: yes** and names environment.
 3. Do not touch live Hummingbird, PM2, cPanel, or domain routing as a side effect of a feature branch.
-4. Do not install deps or change app code in docs-only work.
-5. Prefer small vertical slices that map to one milestone each.
-
-## Done definition for this sequence doc
-
-- Engineering agrees M1 branch name and that it is the next code branch after docs merge.
-- No application commits mixed into the foundation-hardening docs branch.
+4. Prefer small vertical slices that map to one milestone each.

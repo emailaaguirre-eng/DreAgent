@@ -15,7 +15,8 @@ import { normalizeToVisibleMode, type AgentMode } from '@/lib/ai/prompts';
 import { cn } from '@/lib/utils';
 
 const MODE_STORAGE_KEY = 'dreagent_last_mode';
-const USER_STORAGE_KEY = 'dreagent_user_id';
+/** Legacy UI preference only — NEVER treated as trusted owner identity by the server. */
+const CLIENT_UI_ID_PREF_KEY = 'dreagent_user_id';
 
 const MODE_CAPABILITIES: Partial<Record<AgentMode, string[]>> = {
   general: [
@@ -37,7 +38,8 @@ const MODE_CAPABILITIES: Partial<Record<AgentMode, string[]>> = {
 
 export function ChatInterface() {
   const [mode, setMode] = useState<AgentMode>('executive');
-  const [userId, setUserId] = useState<string>('');
+  // Client-only UI preference id; not sent as trusted identity for sensitive APIs.
+  const [, setClientUiId] = useState<string>('');
   const [isDownloadingReport, setIsDownloadingReport] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,13 +47,14 @@ export function ChatInterface() {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    const existingUser = window.localStorage.getItem(USER_STORAGE_KEY);
+    // Keep legacy localStorage id for UI/debug continuity only — not auth.
+    const existingUser = window.localStorage.getItem(CLIENT_UI_ID_PREF_KEY);
     if (existingUser) {
-      setUserId(existingUser);
+      setClientUiId(existingUser);
     } else {
-      const newUserId = `user-${crypto.randomUUID()}`;
-      window.localStorage.setItem(USER_STORAGE_KEY, newUserId);
-      setUserId(newUserId);
+      const newUserId = `ui-${crypto.randomUUID()}`;
+      window.localStorage.setItem(CLIENT_UI_ID_PREF_KEY, newUserId);
+      setClientUiId(newUserId);
     }
 
     const storedMode = window.localStorage.getItem(MODE_STORAGE_KEY);
@@ -78,8 +81,9 @@ export function ChatInterface() {
     reload,
   } = useChat({
     api: '/api/chat',
-    body: { mode, enableRag: true, userId },
-    headers: userId ? { 'x-user-id': userId } : undefined,
+    // Do not send client userId as body/header identity; cookies handle owner session.
+    body: { mode, enableRag: true },
+    credentials: 'same-origin',
   });
 
   useEffect(() => {
@@ -119,17 +123,12 @@ export function ChatInterface() {
 
   const downloadExecutiveReport = useCallback(
     async (includeCalendar: boolean) => {
-      if (!userId) {
-        setDownloadStatus('User session not ready yet. Try again in a moment.');
-        return;
-      }
-
       try {
         setIsDownloadingReport(true);
         setDownloadStatus('');
 
+        // Identity is server-side owner session (or Bearer), not client userId.
         const params = new URLSearchParams({
-          userId,
           folder: 'inbox',
           limit: '200',
           include_calendar: String(includeCalendar),
@@ -137,7 +136,7 @@ export function ChatInterface() {
           days_ahead: '30',
         });
         const url = `/api/outlook/email-history?${params.toString()}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { credentials: 'same-origin' });
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => null);
@@ -172,7 +171,7 @@ export function ChatInterface() {
         setIsDownloadingReport(false);
       }
     },
-    [userId]
+    []
   );
 
   return (

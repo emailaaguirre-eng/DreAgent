@@ -3,11 +3,18 @@
 // Powered by CoDre-X™
 
 import type { NextRequest } from 'next/server';
+import {
+  extractUntrustedClientUserId,
+  resolveTrustedOwnerId,
+} from '@/lib/auth/owner-session';
 import { getOutlookTokens, saveOutlookTokens } from '@/lib/db/supabase';
 import { refreshAccessToken } from '@/lib/outlook/client';
 
 interface ResolveTokenOptions {
   req: NextRequest;
+  /**
+   * @deprecated Untrusted client claim only. Never used as sole authority for DB token lookup.
+   */
   userId?: string;
 }
 
@@ -15,43 +22,63 @@ interface ResolvedTokenResult {
   accessToken: string | null;
   userId: string | null;
   source: 'header' | 'database' | 'database_refreshed' | 'none';
+  identitySource?: string;
+  identityReason?: string;
 }
 
-export function resolveUserId(req: NextRequest, explicitUserId?: string): string | null {
-  if (explicitUserId?.trim()) return explicitUserId.trim();
-
-  const headerUserId = req.headers.get('x-user-id');
-  if (headerUserId?.trim()) return headerUserId.trim();
-
-  const { searchParams } = new URL(req.url);
-  const queryUserId = searchParams.get('userId');
-  if (queryUserId?.trim()) return queryUserId.trim();
-
-  return null;
+/**
+ * @deprecated Client-supplied identity is not trusted.
+ * Prefer extractUntrustedClientUserId + resolveTrustedOwnerId.
+ * Kept as a thin untrusted claim extractor for migration / call-site clarity.
+ */
+export function resolveUserId(
+  req: NextRequest,
+  explicitUserId?: string
+): string | null {
+  return extractUntrustedClientUserId(req, explicitUserId);
 }
 
 export async function resolveOutlookAccessToken(
   options: ResolveTokenOptions
 ): Promise<ResolvedTokenResult> {
   const { req, userId: explicitUserId } = options;
+  const untrustedClientUserId = extractUntrustedClientUserId(req, explicitUserId);
 
   const authHeader = req.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
+    // Bearer is a live Graph credential, not a user identity claim.
+    // Owner binding for token *storage* still uses trusted session elsewhere.
     return {
       accessToken: authHeader.slice(7),
-      userId: resolveUserId(req, explicitUserId),
+      userId: null,
       source: 'header',
+      identitySource: 'bearer_graph_token',
     };
   }
 
-  const userId = resolveUserId(req, explicitUserId);
-  if (!userId) {
-    return { accessToken: null, userId: null, source: 'none' };
+  const trusted = resolveTrustedOwnerId(req, {
+    untrustedClientUserId,
+  });
+
+  if (!trusted.ok) {
+    return {
+      accessToken: null,
+      userId: null,
+      source: 'none',
+      identitySource: trusted.source,
+      identityReason: trusted.reason,
+    };
   }
 
+  const userId = trusted.ownerId;
   const tokenRecord = await getOutlookTokens(userId);
   if (!tokenRecord) {
-    return { accessToken: null, userId, source: 'none' };
+    return {
+      accessToken: null,
+      userId,
+      source: 'none',
+      identitySource: trusted.source,
+    };
   }
 
   const expiresAtMs = new Date(tokenRecord.expires_at).getTime();
@@ -63,6 +90,7 @@ export async function resolveOutlookAccessToken(
       accessToken: tokenRecord.access_token,
       userId,
       source: 'database',
+      identitySource: trusted.source,
     };
   }
 
@@ -80,5 +108,6 @@ export async function resolveOutlookAccessToken(
     accessToken: refreshed.access_token,
     userId,
     source: 'database_refreshed',
+    identitySource: trusted.source,
   };
 }
