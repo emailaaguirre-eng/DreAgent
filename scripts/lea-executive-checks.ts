@@ -86,6 +86,26 @@ assert.ok(
     chatUi.includes('I can help with planning, drafting, research'),
   'Lea empty-state identity copy present'
 );
+assert.ok(
+  chatUi.includes('Now / Next / Later') ||
+    chatUi.includes("I'm overwhelmed"),
+  'Lea empty state offers overwhelm / triage entry'
+);
+assert.ok(
+  MODES.executive.systemPrompt.includes('project-aware') ||
+    MODES.executive.systemPrompt.includes('Now / Next / Later'),
+  'Lea prompt includes project-aware / triage framing'
+);
+assert.ok(
+  MODES.executive.systemPrompt.includes('overwhelmed') ||
+    MODES.executive.systemPrompt.includes('When the user is overwhelmed'),
+  'Lea prompt includes overwhelm next-step behavior'
+);
+assert.ok(
+  MODES.executive.systemPrompt.includes('Never invent access to files') ||
+    MODES.executive.systemPrompt.includes('health records'),
+  'Lea prompt forbids inventing unconnected systems'
+);
 
 section('Executive intent routing');
 assert.equal(detectExecutiveIntent('check my inbox'), 'email_summary');
