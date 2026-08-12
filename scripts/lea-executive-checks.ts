@@ -19,6 +19,15 @@ import {
 } from '../src/lib/ai/executive';
 import { MODES } from '../src/lib/ai/prompts';
 import { isReliableDomainForTests } from '../src/lib/tools/web-search';
+import {
+  createOwnerSessionToken,
+  getConfiguredOwnerId,
+  isOwnerSessionConfigured,
+  isValidOwnerBootstrapSecret,
+  OWNER_SESSION_COOKIE,
+  resolveTrustedOwnerId,
+  verifyOwnerSessionToken,
+} from '../src/lib/auth/owner-session';
 
 function section(name: string) {
   console.log(`\n== ${name} ==`);
@@ -163,5 +172,117 @@ section('Trust filter still blocks random commercial hosts');
 assert.equal(isReliableDomainForTests('example.com'), false);
 assert.equal(isReliableDomainForTests('reuters.com'), true);
 assert.equal(isReliableDomainForTests('cdc.gov'), true);
+
+section('Owner session foundation (M1)');
+// Save/restore env so offline checks do not depend on the host machine secrets.
+const prevSecret = process.env.LEA_OWNER_SESSION_SECRET;
+const prevOwner = process.env.LEA_OWNER_ID;
+process.env.LEA_OWNER_SESSION_SECRET = 'offline-test-owner-session-secret';
+process.env.LEA_OWNER_ID = 'lea-owner';
+
+assert.equal(getConfiguredOwnerId(), 'lea-owner');
+assert.equal(isOwnerSessionConfigured(), true);
+
+const token = createOwnerSessionToken('lea-owner');
+const verified = verifyOwnerSessionToken(token);
+assert.equal(verified.ok, true);
+if (verified.ok) {
+  assert.equal(verified.payload.ownerId, 'lea-owner');
+}
+
+const badSig = token.slice(0, -4) + 'xxxx';
+assert.equal(verifyOwnerSessionToken(badSig).ok, false);
+
+const forgedOnly = resolveTrustedOwnerId(
+  new Request('http://localhost/api/knowledge', {
+    headers: { 'x-user-id': 'forged-user-123' },
+  }),
+  { untrustedClientUserId: 'forged-user-123' }
+);
+assert.equal(forgedOnly.ok, false, 'forged client userId alone must fail closed');
+assert.ok(
+  forgedOnly.source === 'untrusted_client_rejected' ||
+    forgedOnly.source === 'none' ||
+    forgedOnly.source === 'invalid_session',
+  'forged client identity rejected'
+);
+
+const withCookie = resolveTrustedOwnerId(
+  new Request('http://localhost/api/knowledge', {
+    headers: {
+      cookie: `${OWNER_SESSION_COOKIE}=${token}`,
+    },
+  })
+);
+assert.equal(withCookie.ok, true);
+if (withCookie.ok) assert.equal(withCookie.ownerId, 'lea-owner');
+
+const mismatch = resolveTrustedOwnerId(
+  new Request('http://localhost/api/knowledge', {
+    headers: {
+      cookie: `${OWNER_SESSION_COOKIE}=${token}`,
+      'x-user-id': 'other-user',
+    },
+  }),
+  { untrustedClientUserId: 'other-user' }
+);
+assert.equal(mismatch.ok, false, 'mismatched client userId must fail closed');
+assert.equal(mismatch.source, 'owner_mismatch');
+
+assert.equal(
+  isValidOwnerBootstrapSecret('offline-test-owner-session-secret'),
+  true
+);
+assert.equal(isValidOwnerBootstrapSecret('wrong-secret'), false);
+
+// Restore env
+if (prevSecret === undefined) delete process.env.LEA_OWNER_SESSION_SECRET;
+else process.env.LEA_OWNER_SESSION_SECRET = prevSecret;
+if (prevOwner === undefined) delete process.env.LEA_OWNER_ID;
+else process.env.LEA_OWNER_ID = prevOwner;
+
+section('Sensitive routes must not trust client userId alone');
+const knowledgeRoute = readFileSync(
+  join(__dirname, '../src/app/api/knowledge/route.ts'),
+  'utf8'
+);
+const conversationsRoute = readFileSync(
+  join(__dirname, '../src/app/api/conversations/route.ts'),
+  'utf8'
+);
+const tokensLib = readFileSync(
+  join(__dirname, '../src/lib/outlook/tokens.ts'),
+  'utf8'
+);
+assert.ok(
+  knowledgeRoute.includes('requireTrustedOwner'),
+  'knowledge route must require trusted owner'
+);
+assert.ok(
+  conversationsRoute.includes('requireTrustedOwner'),
+  'conversations route must require trusted owner'
+);
+assert.ok(
+  tokensLib.includes('resolveTrustedOwnerId'),
+  'Outlook token resolver must use trusted owner for DB path'
+);
+assert.ok(
+  !tokensLib.includes('if (explicitUserId?.trim()) return explicitUserId.trim()'),
+  'resolveUserId must not treat explicit client userId as authoritative owner'
+);
+assert.ok(
+  chatRoute.includes('resolveTrustedOwnerId') ||
+    chatRoute.includes('owner_session_required'),
+  'chat route must not treat client userId as sole RAG/identity authority'
+);
+assert.ok(
+  chatUi.includes("credentials: 'same-origin'") ||
+    !chatUi.includes("'x-user-id'"),
+  'chat UI must not send x-user-id as trusted identity header'
+);
+assert.ok(
+  !chatUi.includes('body: { mode, enableRag: true, userId }'),
+  'chat UI must not send userId as authoritative body identity'
+);
 
 console.log('\nAll Smart LEA v1 offline checks passed.');

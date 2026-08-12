@@ -12,13 +12,15 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId') || undefined;
-    const resolved = await resolveOutlookAccessToken({ req, userId });
+    const resolved = await resolveOutlookAccessToken({ req });
     const accessToken = resolved.accessToken;
     if (!accessToken) {
       return NextResponse.json(
         {
-          error: 'Outlook not connected. Provide Bearer token or connect via /api/outlook/auth?userId=...',
+          error:
+            'Outlook not connected. Provide Bearer token or establish owner session and connect via /api/outlook/auth. Client userId is not trusted.',
+          identitySource: resolved.identitySource,
+          identityReason: resolved.identityReason,
         },
         { status: 401 }
       );
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest) {
           error: error.message,
           hint:
             error.status === 401
-              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth?userId=...'
+              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth with an owner session.'
               : undefined,
         },
         { status: error.status }
@@ -51,17 +53,23 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Create calendar event
+// POST - Create calendar event (Graph write path — not used by Smart LEA chat; trusted identity for token lookup)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId } = body as { userId?: string };
-    const resolved = await resolveOutlookAccessToken({ req, userId });
+    const { userId: clientUserId } = body as { userId?: string };
+    const resolved = await resolveOutlookAccessToken({
+      req,
+      userId: clientUserId,
+    });
     const accessToken = resolved.accessToken;
     if (!accessToken) {
       return NextResponse.json(
         {
-          error: 'Outlook not connected. Provide Bearer token or connect via /api/outlook/auth?userId=...',
+          error:
+            'Outlook not connected. Provide Bearer token or establish owner session and connect via /api/outlook/auth. Client userId is not trusted.',
+          identitySource: resolved.identitySource,
+          identityReason: resolved.identityReason,
         },
         { status: 401 }
       );
@@ -99,7 +107,7 @@ export async function POST(req: NextRequest) {
           error: error.message,
           hint:
             error.status === 401
-              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth?userId=...'
+              ? 'Outlook token expired or invalid. Reconnect at /api/outlook/auth with an owner session.'
               : undefined,
         },
         { status: error.status }
