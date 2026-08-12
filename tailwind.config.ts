@@ -23,15 +23,15 @@ const config: Config = {
           900: '#673628',
           950: '#381a13',
         },
-        // Dark mode surface colors
+        // Dark mode surface colors — aligned with calm CoDre-X navy workspace
         surface: {
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
           700: '#1e293b',
           800: '#0f172a',
-          900: '#0a0f1a',
-          950: '#050709',
+          900: '#080C12',
+          950: '#06090E',
         },
         // Text colors (tuned for readable contrast on dark surfaces)
         text: {
@@ -59,12 +59,6 @@ const config: Config = {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
         },
-      },
-      backgroundImage: {
-        'grid-pattern': 'linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px)',
-      },
-      backgroundSize: {
-        'grid': '24px 24px',
       },
     },
   },

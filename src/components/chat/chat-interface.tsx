@@ -21,18 +21,16 @@ const CLIENT_UI_ID_PREF_KEY = 'dreagent_user_id';
 const MODE_CAPABILITIES: Partial<Record<AgentMode, string[]>> = {
   general: [
     'Incentives & economic development',
-    'General triage',
-    'No live mail provider (switch to Lea)',
+    'Calm triage',
+    'Switch to Lea for day-to-day',
   ],
   'it-support': ['Debugging', 'Code review', 'Cloud & sysadmin'],
   executive: [
-    'Executive support',
-    'Mail/calendar when connected',
-    'Drafts only',
-    'Research',
-    'Legal/finance organization',
-    'Incentives',
-    'Wellness planned',
+    'Plan & prioritize',
+    'Drafts & follow-ups',
+    'Project framing',
+    'Briefings',
+    'Mail when connected',
   ],
 };
 
@@ -255,7 +253,7 @@ export function ChatInterface() {
                 onKeyDown={handleKeyDown}
                 placeholder={
                   mode === 'executive'
-                    ? 'Ask Lea to plan, draft mail, or check a connected inbox…'
+                    ? 'Tell Lea what is on your plate — plans, drafts, or where to start…'
                     : 'Ask me anything...'
                 }
                 rows={1}
@@ -371,7 +369,7 @@ function EmptyState({
     'it-support':
       "I'm Chiquis, optional IT and coding specialist. Switch to Lea for planning, drafting, and mail/calendar support.",
     executive:
-      "I'm Lea, your executive assistant. I can help with planning, drafting, research, organization, and connected mail/calendar when available.",
+      "I'm Lea, your executive assistant. I help you organize what matters, draft the next message, and take one clear step at a time — with connected mail/calendar when available. I can help with planning, drafting, research, and organization even without a live inbox.",
   };
 
   const suggestions: Partial<Record<AgentMode, string[]>> = {
@@ -386,12 +384,12 @@ function EmptyState({
       'Review my code for security issues',
     ],
     executive: [
+      "I'm overwhelmed — help me sort Now / Next / Later",
+      'Frame this as a project and give me one first move',
+      'Draft a follow-up email to the client about next steps',
+      'Build a short morning briefing outline for today',
       'Check my inbox for the last 7 days',
       'What meetings do I have this week?',
-      'Draft a follow-up email to the client about next steps',
-      'Summarize this topic clearly for a briefing',
-      'Help me organize the open items in this contract',
-      'Export my email history as CSV',
     ],
   };
 
@@ -399,6 +397,7 @@ function EmptyState({
     suggestions[mode] ?? suggestions.executive ?? [];
   const intro =
     introByMode[mode] ?? introByMode.executive ?? 'How can I help?';
+  const isLea = mode === 'executive';
 
   return (
     <motion.div
@@ -418,13 +417,23 @@ function EmptyState({
       </motion.div>
 
       <h2 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">
-        How can I help you today?
+        {isLea ? 'Good to see you — where should we start?' : 'How can I help you today?'}
       </h2>
-      <p className="text-text-secondary mb-8 max-w-lg leading-relaxed">
-        {intro} Try one of these suggestions:
+      <p className="text-text-secondary mb-4 max-w-lg leading-relaxed">
+        {intro}
       </p>
+      {isLea && (
+        <p className="text-text-muted text-sm mb-8 max-w-md leading-relaxed">
+          Prefer a gentle start? Pick a suggestion, or just tell me what is on your mind.
+        </p>
+      )}
+      {!isLea && (
+        <p className="text-text-secondary mb-8 max-w-lg leading-relaxed">
+          Try one of these suggestions:
+        </p>
+      )}
 
-      <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+      <div className="flex flex-wrap gap-2 justify-center max-w-xl">
         {modeSuggestions.map((suggestion, i) => (
           <motion.button
             key={i}

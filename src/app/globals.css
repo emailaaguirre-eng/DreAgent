@@ -17,10 +17,10 @@
   --brand-secondary: #994830;
   --brand-accent: #e9b8a3;
   
-  /* Dark surfaces */
-  --surface-base: #0a0f1a;
-  --surface-elevated: #111827;
-  --surface-card: #1a2332;
+  /* Dark surfaces — CoDre-X deep navy / blue-black (calm, low-strain) */
+  --surface-base: #080C12;
+  --surface-elevated: #0D1520;
+  --surface-card: #121A26;
   
   /* Text — WCAG-friendlier pairings on dark surfaces */
   --text-primary: #f8fafc;
@@ -74,32 +74,39 @@ textarea::placeholder {
   background: rgba(148, 163, 184, 0.4);
 }
 
-/* Animated gradient background — keeps a solid dark base under the gradient */
+/* Calm page background — deep navy with soft depth only (no grid, no motion) */
+.lea-workspace-bg {
+  background-color: #080C12;
+  background-image:
+    radial-gradient(
+      ellipse 90% 55% at 50% -15%,
+      rgba(18, 36, 58, 0.45) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 70% 45% at 85% 100%,
+      rgba(9, 15, 24, 0.9) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      #090F18 0%,
+      #080C12 42%,
+      #070B11 100%
+    );
+  background-attachment: fixed;
+}
+
+/* Legacy class names kept as aliases so older markup stays calm */
 .gradient-bg {
-  background-color: var(--surface-base);
-  background-image: linear-gradient(
-    135deg,
-    var(--surface-base) 0%,
-    #0f1729 25%,
-    #141e30 50%,
-    #0f1729 75%,
-    var(--surface-base) 100%
-  );
-  background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+  background-color: #080C12;
+  background-image: none;
+  animation: none;
 }
 
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-/* Subtle grid pattern overlay */
+/* Grid intentionally disabled — was causing eye strain */
 .grid-overlay {
-  background-image: 
-    linear-gradient(to right, rgba(205, 111, 77, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(205, 111, 77, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image: none;
 }
 
 /* Glow effects */
