@@ -1,9 +1,10 @@
-// DreAgent - Mail/calendar provider registry (M2)
+// DreAgent - Mail/calendar provider registry
 // Copyright (c) 2026 B&D Servicing LLC - All Rights Reserved
 // Powered by CoDre-X™
 //
-// Outlook is the only registered adapter. Gmail is not registered (M3).
+// Outlook (live read when connected) + Gmail (M3 foundation skeleton, never connected yet).
 
+import { gmailProvider } from '@/lib/providers/gmail-adapter';
 import { outlookProvider } from '@/lib/providers/outlook-adapter';
 import type {
   MailCalendarProvider,
@@ -14,6 +15,7 @@ import type {
 
 const REGISTERED_PROVIDERS: readonly MailCalendarProvider[] = [
   outlookProvider,
+  gmailProvider,
 ];
 
 export function listRegisteredProviders(): readonly MailCalendarProvider[] {
@@ -31,7 +33,8 @@ export type ResolvedProvider = {
 
 /**
  * First connected registered provider.
- * Today that is Outlook only. Fail closed (null) when none are connected.
+ * Outlook can connect today; Gmail foundation never reports connected until OAuth/read exist.
+ * Fail closed (null) when none are connected.
  */
 export async function resolveConnectedProvider(
   ctx: ProviderRequestContext

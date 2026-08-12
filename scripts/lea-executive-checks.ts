@@ -30,6 +30,10 @@ import {
 } from '../src/lib/auth/owner-session';
 import {
   getProvider,
+  getGmailConfigStatus,
+  gmailProvider,
+  GMAIL_FOUNDATION_CAPABILITIES,
+  isGmailLiveReadAvailable,
   isProviderRegistered,
   listRegisteredProviders,
   outlookProvider,
@@ -294,11 +298,12 @@ assert.ok(
 
 section('Provider abstraction foundation (M2)');
 const registered = listRegisteredProviders();
-assert.equal(registered.length, 1, 'only Outlook is registered in M2');
+assert.equal(registered.length, 2, 'Outlook + Gmail foundation are registered');
 assert.equal(registered[0].id, 'outlook');
+assert.equal(registered[1].id, 'gmail');
 assert.equal(isProviderRegistered('outlook'), true);
-assert.equal(isProviderRegistered('gmail'), false, 'Gmail adapter must not be registered yet');
-assert.equal(getProvider('gmail'), null);
+assert.equal(isProviderRegistered('gmail'), true);
+assert.equal(getProvider('gmail')?.id, 'gmail');
 
 assert.equal(outlookProvider.id, 'outlook');
 assert.equal(outlookProvider.capabilities.mailRead, true);
@@ -358,4 +363,66 @@ assert.ok(
   'provider types must not include Graph write APIs'
 );
 
-console.log('\nAll Smart LEA v1 offline checks passed.');
+section('Gmail read provider foundation (M3)');
+assert.equal(gmailProvider.id, 'gmail');
+assert.equal(gmailProvider.capabilities.mailRead, false, 'no live Gmail read path yet');
+assert.equal(gmailProvider.capabilities.calendarRead, false);
+assert.equal(gmailProvider.capabilities.mailExport, false);
+assert.equal(gmailProvider.capabilities.mailSend, false);
+assert.equal(gmailProvider.capabilities.calendarWrite, false);
+assert.deepEqual(gmailProvider.capabilities, GMAIL_FOUNDATION_CAPABILITIES);
+assert.equal(
+  'sendMail' in gmailProvider || 'createEvent' in gmailProvider || 'sendEmail' in gmailProvider,
+  false,
+  'Gmail adapter must not expose write methods on the LEA port'
+);
+assert.equal(isGmailLiveReadAvailable(), false);
+
+const gmailStatus = getGmailConfigStatus();
+assert.equal(gmailStatus.liveReadAvailable, false);
+assert.ok(Array.isArray(gmailStatus.missingRequiredEnv));
+
+const gmailAdapterSrc = readFileSync(
+  join(__dirname, '../src/lib/providers/gmail-adapter.ts'),
+  'utf8'
+);
+assert.ok(
+  !/googleapis|gmail\.googleapis|users\.messages\.list/i.test(gmailAdapterSrc),
+  'Gmail adapter foundation must not pretend to call Gmail APIs'
+);
+assert.equal(
+  /sendEmail|createCalendarEvent/.test(chatRoute),
+  false,
+  'chat still must not call send/create after Gmail foundation'
+);
+
+const fakeProviderReq = { headers: { get: () => null } } as never;
+
+gmailProvider
+  .getConnection({ req: fakeProviderReq })
+  .then((gmailConnection) => {
+    assert.equal(gmailConnection.connected, false, 'Gmail must not claim connected');
+    assert.equal(gmailConnection.source, 'none');
+    assert.ok(
+      gmailConnection.reason && /not (available|implemented)/i.test(gmailConnection.reason),
+      'Gmail connection reason must explain deferred live read'
+    );
+    return gmailProvider.listMail({ req: fakeProviderReq }).then(
+      () => {
+        throw new Error('gmail listMail should reject');
+      },
+      (err: unknown) => {
+        assert.ok(
+          err instanceof Error && /Gmail mail read is not available/.test(err.message),
+          'listMail must fail closed with clear deferred message'
+        );
+      }
+    );
+  })
+  .then(() => {
+    console.log('\nAll Smart LEA v1 offline checks passed.');
+  })
+  .catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });

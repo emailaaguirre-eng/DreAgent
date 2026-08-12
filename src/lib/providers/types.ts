@@ -1,9 +1,9 @@
-// DreAgent - Provider-neutral mail/calendar types (M2)
+// DreAgent - Provider-neutral mail/calendar types
 // Copyright (c) 2026 B&D Servicing LLC - All Rights Reserved
 // Powered by CoDre-X™
 //
 // Read-focused LEA port. Send/create stay on provider-specific API routes until M4.
-// Gmail is reserved as an id only — no adapter in this milestone.
+// Gmail is registered as an M3 foundation adapter; live Gmail read is deferred.
 
 import type { NextRequest } from 'next/server';
 
@@ -11,7 +11,7 @@ export type ProviderId = 'outlook' | 'gmail';
 
 /**
  * What LEA executive may use through the shared provider port.
- * mailSend / calendarWrite are policy flags for the port (false in M2),
+ * mailSend / calendarWrite are policy flags for the port (false for LEA),
  * not a claim that Graph write helpers do not exist on Outlook-specific routes.
  */
 export type ProviderCapabilities = {

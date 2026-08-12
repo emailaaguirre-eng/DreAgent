@@ -1,4 +1,4 @@
-// DreAgent - Provider abstraction public surface (M2)
+// DreAgent - Provider abstraction public surface
 // Copyright (c) 2026 B&D Servicing LLC - All Rights Reserved
 // Powered by CoDre-X™
 
@@ -9,6 +9,7 @@ export {
   resolveConnectedProvider,
   type ResolvedProvider,
 } from '@/lib/providers/registry';
+export { gmailProvider, GMAIL_FOUNDATION_CAPABILITIES } from '@/lib/providers/gmail-adapter';
 export { outlookProvider } from '@/lib/providers/outlook-adapter';
 export {
   READ_ONLY_LEA_CAPABILITIES,
@@ -22,3 +23,8 @@ export {
   type ProviderId,
   type ProviderRequestContext,
 } from '@/lib/providers/types';
+export {
+  getGmailConfigStatus,
+  GMAIL_OAUTH_ENV_NAMES,
+  isGmailLiveReadAvailable,
+} from '@/lib/gmail/config';
