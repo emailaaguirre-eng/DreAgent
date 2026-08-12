@@ -18,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="gradient-bg grid-overlay min-h-screen">
+      <body className="lea-workspace-bg min-h-screen">
         {children}
         
         {/* Footer branding */}
