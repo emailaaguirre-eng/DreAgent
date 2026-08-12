@@ -1,43 +1,35 @@
 # LEA v2 Implementation Sequence
 
-Ordering for coding branches after foundation docs. Product milestones: [LEA_V2_FOUNDATION_PLAN.md](./LEA_V2_FOUNDATION_PLAN.md). Source of truth: [LEA_V2_SOURCE_OF_TRUTH.md](./LEA_V2_SOURCE_OF_TRUTH.md). Auth design: [LEA_AUTH_SESSION.md](./LEA_AUTH_SESSION.md).
+Ordering for coding branches after foundation docs. Product milestones: [LEA_V2_FOUNDATION_PLAN.md](./LEA_V2_FOUNDATION_PLAN.md). Source of truth: [LEA_V2_SOURCE_OF_TRUTH.md](./LEA_V2_SOURCE_OF_TRUTH.md). Auth design: [LEA_AUTH_SESSION.md](./LEA_AUTH_SESSION.md). Provider port: [LEA_PROVIDER_ABSTRACTION.md](./LEA_PROVIDER_ABSTRACTION.md).
 
 ## Branches
 
 | Branch | Scope | Status |
 | --- | --- | --- |
-| `feature/lea-v2-foundation-hardening` | Planning docs only | Merged to main as foundation path docs |
-| `feature/lea-auth-and-owner-session` | **M1** single-owner session gate; stop trusting client `userId` | **Active coding branch** |
+| `feature/lea-v2-foundation-hardening` | Planning docs only | Merged |
+| `feature/lea-auth-and-owner-session` | **M1** single-owner session gate | Merged (`#4`) |
+| `feature/lea-provider-abstraction` | **M2** read-only mail/calendar provider port + Outlook adapter | **Active coding branch** |
 
-## M1 coding branch (current)
+## M2 coding branch (current)
 
-### `feature/lea-auth-and-owner-session`
+### `feature/lea-provider-abstraction`
 
-- Server-authoritative owner session (`lea_owner_session` HTTP-only cookie)
-- Bootstrap via `POST /api/auth/owner-session` (shared secret; not multi-user login UI)
-- Knowledge, conversations, and Outlook DB-token paths fail closed without trusted owner
-- Client `localStorage` / body / `x-user-id` are not authoritative
-- Chat drafting still works without session; personal RAG/mail storage requires session
-- Offline checks for owner-session helper and untrusted client userId
+- Provider-neutral types and `MailCalendarProvider` (read/list/status/capabilities)
+- Outlook adapter wraps existing Graph read helpers
+- Chat executive intents resolve a connected provider instead of importing Graph types
+- Gmail **not** implemented; id reserved only
+- Send/create remain off the LEA port and unused by chat
+- M1 owner-session token gates unchanged
 - **No deploy** in this branch
 
 ## Then
-
-### 2. `feature/lea-provider-abstraction` (M2)
-
-After identity can be trusted:
-
-- Define email/calendar provider interfaces
-- Move Outlook (and any existing) integrations behind ports
-- Keep behavior parity for current Outlook users
-- No requirement to enable Gmail in the same PR/branch
 
 ### 3. `feature/lea-gmail-read` (M3)
 
 After abstraction exists:
 
-- Gmail **read-only** support through the provider layer
-- No send/write expansion in this branch unless re-scoped with M4 approval gates
+- Gmail **read-only** adapter registered beside Outlook
+- No send/write expansion in that branch unless re-scoped with M4 approval gates
 - Secrets remain out of repo; config via env on authorized environments only
 
 ## Later branches (indicative)
@@ -52,7 +44,7 @@ After abstraction exists:
 | Ops-only, explicit permissions | M9 staging |
 | Decision record + ops, explicit permissions | M10 cutover |
 
-**Ship order for platform risk remains M1 → M2 → M3.**
+**Ship order for remaining platform risk is M2 → M3**, then M4+ as listed.
 
 ## Guardrails for every coding branch
 

@@ -18,13 +18,11 @@ import {
   formatRagStatusLine,
   getRelevantContext,
 } from '@/lib/rag/query';
-import {
-  getCalendarEvents,
-  getEmails,
-  type Email,
-} from '@/lib/outlook/client';
 import { resolveTrustedOwnerId } from '@/lib/auth/owner-session';
-import { resolveOutlookAccessToken } from '@/lib/outlook/tokens';
+import {
+  resolveConnectedProvider,
+  type MailMessage,
+} from '@/lib/providers';
 import {
   webSearch,
   filterReliableSearchResults,
@@ -92,9 +90,9 @@ function getModelFallbackOrder(primary: SupportedModel): SupportedModel[] {
 }
 
 function filterEmails(
-  emails: Email[],
+  emails: MailMessage[],
   params: ReturnType<typeof parseExecutiveParams>
-): Email[] {
+): MailMessage[] {
   let list = emails;
   if (params.senderHint) {
     const hint = params.senderHint.toLowerCase();
@@ -121,7 +119,7 @@ function filterEmails(
   return list;
 }
 
-function formatEmailSamples(emails: Email[]): string {
+function formatEmailSamples(emails: MailMessage[]): string {
   const sample = emails.slice(0, EMAIL_SAMPLE_LIMIT);
   if (sample.length === 0) return 'No emails matched the requested parameters.';
   return sample
@@ -136,8 +134,8 @@ async function buildExecutiveActionContext(
   req: NextRequest,
   intent: ExecutiveIntent,
   lastUserMessage: string,
-  userId?: string,
-  outlookAccessToken?: string
+  _ownerId?: string,
+  accessTokenOverride?: string
 ): Promise<string> {
   // v1 Smart LEA: draft-only for outbound actions — never send mail or create calendar events.
   if (intent === 'draft_email') {
@@ -170,10 +168,12 @@ Do not claim a calendar event was created. Offer to refine the event draft inste
     return '';
   }
 
-  const resolved = await resolveOutlookAccessToken({ req, userId });
-  const accessToken = outlookAccessToken || resolved.accessToken;
+  const connected = await resolveConnectedProvider({
+    req,
+    accessTokenOverride,
+  });
 
-  if (!accessToken) {
+  if (!connected) {
     return `Lea could not complete a live mail/calendar check because no connected email/calendar provider is available for this user.
 Action status: failed
 Provider note: Outlook is currently supported if configured; Gmail support is planned and not implemented yet.
@@ -181,16 +181,26 @@ User-facing: do not invent inbox/calendar contents. Stay useful with planning an
 Legacy connect path if Outlook is already set up for this deployment: establish an owner session (POST /api/auth/owner-session), then open /api/outlook/auth (client userId is not trusted).`;
   }
 
+  const { provider, connection } = connected;
+  const providerLabel = `${connection.providerId} (${provider.displayName})`;
   const params = parseExecutiveParams(lastUserMessage);
 
   if (intent === 'email_summary') {
-    const emails = await getEmails(accessToken, {
-      folder: 'inbox',
-      limit: params.limit,
-      unreadOnly: params.unreadOnly,
-      startDate: params.startDate,
-      endDate: params.endDate,
-    });
+    if (!provider.capabilities.mailRead) {
+      return `Lea could not complete a live inbox check because the connected provider does not expose mail read.
+Action status: failed
+Provider: ${providerLabel}`;
+    }
+    const emails = await provider.listMail(
+      { req, accessTokenOverride },
+      {
+        folder: 'inbox',
+        limit: params.limit,
+        unreadOnly: params.unreadOnly,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      }
+    );
     const filtered = filterEmails(emails, params);
     const assumptions: string[] = [];
     if (params.usedDefaultEmailWindow) {
@@ -202,9 +212,9 @@ Legacy connect path if Outlook is already set up for this deployment: establish 
       assumptions.push('Filtered to unread messages only.');
     }
 
-    return `Lea completed a connected email-provider inbox check (current implementation: Outlook/Microsoft Graph when configured).
+    return `Lea completed a connected email-provider inbox check.
 Action status: success
-Provider: outlook (legacy convenience if configured)
+Provider: ${providerLabel}
 Filters: ${JSON.stringify({
   folder: 'inbox',
   limit: params.limit,
@@ -224,10 +234,18 @@ ${formatEmailSamples(filtered)}`;
   }
 
   if (intent === 'calendar_summary') {
-    const events = await getCalendarEvents(accessToken, {
-      daysAhead: params.daysAhead,
-      daysBehind: params.daysBehind,
-    });
+    if (!provider.capabilities.calendarRead) {
+      return `Lea could not complete a live calendar check because the connected provider does not expose calendar read.
+Action status: failed
+Provider: ${providerLabel}`;
+    }
+    const events = await provider.listCalendar(
+      { req, accessTokenOverride },
+      {
+        daysAhead: params.daysAhead,
+        daysBehind: params.daysBehind,
+      }
+    );
     const assumptions: string[] = [];
     if (params.usedDefaultCalendarWindow) {
       assumptions.push(
@@ -245,9 +263,9 @@ ${formatEmailSamples(filtered)}`;
             )
             .join('\n\n');
 
-    return `Lea completed a connected calendar-provider check (current implementation: Outlook/Microsoft Graph when configured).
+    return `Lea completed a connected calendar-provider check.
 Action status: success
-Provider: outlook (legacy convenience if configured)
+Provider: ${providerLabel}
 Filters: ${JSON.stringify({
   daysAhead: params.daysAhead,
   daysBehind: params.daysBehind,
@@ -260,20 +278,31 @@ ${sampleText}`;
   }
 
   if (intent === 'email_history_export') {
-    const emails = await getEmails(accessToken, {
-      folder: 'inbox',
-      limit: params.limit,
-      unreadOnly: params.unreadOnly,
-      startDate: params.startDate,
-      endDate: params.endDate,
-    });
+    if (!provider.capabilities.mailExport && !provider.capabilities.mailRead) {
+      return `Lea could not prepare an email-history export because the connected provider does not expose mail export/read.
+Action status: failed
+Provider: ${providerLabel}`;
+    }
+    const emails = await provider.listMail(
+      { req, accessTokenOverride },
+      {
+        folder: 'inbox',
+        limit: params.limit,
+        unreadOnly: params.unreadOnly,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      }
+    );
 
     let calendarCount = 0;
-    if (params.includeCalendar) {
-      const events = await getCalendarEvents(accessToken, {
-        daysAhead: params.daysAhead,
-        daysBehind: params.daysBehind,
-      });
+    if (params.includeCalendar && provider.capabilities.calendarRead) {
+      const events = await provider.listCalendar(
+        { req, accessTokenOverride },
+        {
+          daysAhead: params.daysAhead,
+          daysBehind: params.daysBehind,
+        }
+      );
       calendarCount = events.length;
     }
 
@@ -288,11 +317,17 @@ ${sampleText}`;
     if (params.startDate) exportParams.set('start_date', params.startDate);
     if (params.endDate) exportParams.set('end_date', params.endDate);
 
-    return `Lea prepared an email-history CSV export request via the currently connected email provider path (Outlook endpoint when configured).
+    // Export HTTP path remains Outlook-specific until a provider-neutral export route exists.
+    const exportEndpoint =
+      provider.id === 'outlook'
+        ? `/api/outlook/email-history?${exportParams.toString()}`
+        : `(no provider-neutral export route yet for ${provider.id})`;
+
+    return `Lea prepared an email-history CSV export request via the currently connected email provider path.
 Action status: ready
-Provider: outlook (legacy convenience if configured)
+Provider: ${providerLabel}
 Records to export now: ${emails.length} emails${params.includeCalendar ? `, ${calendarCount} calendar events` : ''}
-Export endpoint: /api/outlook/email-history?${exportParams.toString()}
+Export endpoint: ${exportEndpoint}
 UI: Lea Executive footer buttons "Download Email CSV" / "Download Email + Calendar CSV" use folder=inbox, limit=200, days_behind=30 (email+calendar path days_ahead=30).
 Note: Use the trusted owner session cookie (or Authorization: Bearer <access_token>) when downloading — client userId query params are not authoritative. Gmail export is not implemented yet.`;
   }

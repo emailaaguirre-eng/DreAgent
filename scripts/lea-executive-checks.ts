@@ -28,6 +28,13 @@ import {
   resolveTrustedOwnerId,
   verifyOwnerSessionToken,
 } from '../src/lib/auth/owner-session';
+import {
+  getProvider,
+  isProviderRegistered,
+  listRegisteredProviders,
+  outlookProvider,
+  READ_ONLY_LEA_CAPABILITIES,
+} from '../src/lib/providers';
 
 function section(name: string) {
   console.log(`\n== ${name} ==`);
@@ -283,6 +290,72 @@ assert.ok(
 assert.ok(
   !chatUi.includes('body: { mode, enableRag: true, userId }'),
   'chat UI must not send userId as authoritative body identity'
+);
+
+section('Provider abstraction foundation (M2)');
+const registered = listRegisteredProviders();
+assert.equal(registered.length, 1, 'only Outlook is registered in M2');
+assert.equal(registered[0].id, 'outlook');
+assert.equal(isProviderRegistered('outlook'), true);
+assert.equal(isProviderRegistered('gmail'), false, 'Gmail adapter must not be registered yet');
+assert.equal(getProvider('gmail'), null);
+
+assert.equal(outlookProvider.id, 'outlook');
+assert.equal(outlookProvider.capabilities.mailRead, true);
+assert.equal(outlookProvider.capabilities.calendarRead, true);
+assert.equal(outlookProvider.capabilities.mailExport, true);
+assert.equal(
+  outlookProvider.capabilities.mailSend,
+  false,
+  'LEA provider port must not enable send'
+);
+assert.equal(
+  outlookProvider.capabilities.calendarWrite,
+  false,
+  'LEA provider port must not enable calendar write'
+);
+assert.equal(READ_ONLY_LEA_CAPABILITIES.mailSend, false);
+assert.equal(READ_ONLY_LEA_CAPABILITIES.calendarWrite, false);
+
+assert.ok(
+  typeof outlookProvider.listMail === 'function' &&
+    typeof outlookProvider.listCalendar === 'function' &&
+    typeof outlookProvider.getConnection === 'function',
+  'Outlook adapter exposes read/status methods'
+);
+assert.equal(
+  'sendMail' in outlookProvider || 'createEvent' in outlookProvider,
+  false,
+  'Outlook adapter must not expose write methods on the LEA port'
+);
+
+assert.ok(
+  chatRoute.includes('resolveConnectedProvider'),
+  'chat must resolve a provider-neutral connected adapter'
+);
+assert.ok(
+  !chatRoute.includes("from '@/lib/outlook/client'"),
+  'chat must not import Outlook Graph client directly'
+);
+assert.ok(
+  !chatRoute.includes('resolveOutlookAccessToken'),
+  'chat must not call Outlook token helper directly (adapter owns that)'
+);
+assert.equal(
+  /sendEmail|createCalendarEvent/.test(chatRoute),
+  false,
+  'provider work must not introduce chat mail/calendar writes'
+);
+
+const providerTypes = readFileSync(
+  join(__dirname, '../src/lib/providers/types.ts'),
+  'utf8'
+);
+assert.ok(providerTypes.includes('mailRead'), 'capabilities include mailRead');
+assert.ok(providerTypes.includes('calendarRead'), 'capabilities include calendarRead');
+assert.ok(
+  !providerTypes.includes('sendEmail') && !providerTypes.includes('createCalendarEvent'),
+  'provider types must not include Graph write APIs'
 );
 
 console.log('\nAll Smart LEA v1 offline checks passed.');
